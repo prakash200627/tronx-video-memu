@@ -1,0 +1,166 @@
+import type { Restaurant } from "@/types";
+import type { IRestaurantRepository, RestaurantDeleteResult } from "./types";
+import { connectToDatabase } from "@/lib/db/mongodb";
+import {
+  AddonModel,
+  AddonGroupModel,
+  CategoryModel,
+  DishModel,
+  MediaModel,
+  RestaurantModel,
+} from "@/lib/db/models";
+import { toDomain } from "@/lib/db/mongo-mappers";
+
+export class RestaurantRepository implements IRestaurantRepository {
+  async findAll(): Promise<Restaurant[]> {
+    await connectToDatabase();
+    const restaurants = await RestaurantModel.find().lean();
+    return restaurants.map((restaurant) => toDomain<Restaurant>(restaurant));
+  }
+
+  async findById(id: string): Promise<Restaurant | null> {
+    await connectToDatabase();
+    const restaurant = await RestaurantModel.findOne({ id }).lean();
+    return restaurant ? toDomain<Restaurant>(restaurant) : null;
+  }
+
+  async findBySlug(slug: string): Promise<Restaurant | null> {
+    await connectToDatabase();
+    const restaurant = await RestaurantModel.findOne({
+      slug: { $regex: `^${escapeRegExp(slug)}$`, $options: "i" },
+    }).lean();
+    return restaurant ? toDomain<Restaurant>(restaurant) : null;
+  }
+
+  async create(
+    data: Omit<Restaurant, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Restaurant> {
+    await connectToDatabase();
+    const now = new Date().toISOString();
+    const newRestaurant = {
+      ...data,
+      id: data.slug,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const created = await RestaurantModel.create(newRestaurant);
+    return toDomain<Restaurant>(created.toObject());
+  }
+
+  async update(
+    id: string,
+    data: Partial<Restaurant>,
+  ): Promise<Restaurant | null> {
+    await connectToDatabase();
+    const updated = await RestaurantModel.findOneAndUpdate(
+      { id },
+      { $set: { ...data, id, updatedAt: new Date().toISOString() } },
+      { returnDocument: "after", runValidators: true },
+    ).lean();
+    return updated ? toDomain<Restaurant>(updated) : null;
+  }
+
+  async renameIdentity(
+    id: string,
+    newSlug: string,
+    data: Partial<Restaurant>,
+  ): Promise<Restaurant | null> {
+    await connectToDatabase();
+    const updated = await RestaurantModel.findOneAndUpdate(
+      { id },
+      {
+        $set: {
+          ...data,
+          id: newSlug,
+          slug: newSlug,
+          updatedAt: new Date().toISOString(),
+        },
+      },
+      { returnDocument: "after", runValidators: true },
+    ).lean();
+    if (!updated) return null;
+
+    try {
+      await Promise.all([
+        CategoryModel.updateMany(
+          { restaurantId: id },
+          { $set: { restaurantId: newSlug } },
+        ),
+        DishModel.updateMany(
+          { restaurantId: id },
+          { $set: { restaurantId: newSlug } },
+        ),
+        AddonGroupModel.updateMany(
+          { restaurantId: id },
+          { $set: { restaurantId: newSlug } },
+        ),
+        MediaModel.updateMany(
+          { restaurantId: id },
+          { $set: { restaurantId: newSlug } },
+        ),
+      ]);
+    } catch (error) {
+      await Promise.allSettled([
+        CategoryModel.updateMany(
+          { restaurantId: newSlug },
+          { $set: { restaurantId: id } },
+        ),
+        DishModel.updateMany(
+          { restaurantId: newSlug },
+          { $set: { restaurantId: id } },
+        ),
+        AddonGroupModel.updateMany(
+          { restaurantId: newSlug },
+          { $set: { restaurantId: id } },
+        ),
+        MediaModel.updateMany(
+          { restaurantId: newSlug },
+          { $set: { restaurantId: id } },
+        ),
+        RestaurantModel.updateOne(
+          { id: newSlug },
+          {
+            $set: {
+              ...data,
+              id,
+              slug: id,
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        ),
+      ]);
+      throw error;
+    }
+
+    return toDomain<Restaurant>(updated);
+  }
+
+  async delete(id: string): Promise<RestaurantDeleteResult> {
+    await connectToDatabase();
+    const restaurant = await RestaurantModel.findOne({ id }, { id: 1 }).lean();
+    if (!restaurant) return { deleted: false, reason: "NOT_FOUND" };
+
+    const groups = await AddonGroupModel.find(
+      { restaurantId: id },
+      { id: 1 },
+    ).lean();
+    const groupIds = groups.map((group) => group.id);
+
+    await AddonModel.deleteMany({ addonGroupId: { $in: groupIds } });
+    await AddonGroupModel.deleteMany({ restaurantId: id });
+    await DishModel.deleteMany({ restaurantId: id });
+    await CategoryModel.deleteMany({ restaurantId: id });
+    await MediaModel.deleteMany({ restaurantId: id });
+
+    const result = await RestaurantModel.deleteOne({ id });
+    return result.deletedCount === 1
+      ? { deleted: true }
+      : { deleted: false, reason: "NOT_FOUND" };
+  }
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export const restaurantRepository = new RestaurantRepository();
