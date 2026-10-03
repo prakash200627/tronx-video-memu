@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import RestaurantsManager from "@/components/super-admin/RestaurantsManager";
-import { getAdminContext } from "@/lib/auth-server";
+import { getSuperAdminContext } from "@/lib/auth-server";
 import { restaurantService } from "@/lib/services/restaurant.service";
 
 export const dynamic = "force-dynamic";
 
 export default async function SuperAdminRestaurantsPage() {
-  const context = await getAdminContext();
+  const context = await getSuperAdminContext();
   if (!context || context.role !== "SUPER_ADMIN")
     redirect("/super-admin/login");
 

@@ -6,6 +6,8 @@ import type {
   Dish,
   Media,
   Restaurant,
+  RestaurantTable,
+  RestaurantOrder,
 } from "@/types";
 
 const baseOptions = {
@@ -139,6 +141,77 @@ const mediaSchema = new Schema<Media>(
   { ...baseOptions, collection: "media" },
 );
 
+const tableSchema = new Schema<RestaurantTable>(
+  {
+    id: { type: String, required: true, unique: true, index: true },
+    restaurantId: { type: String, required: true },
+    tableNumber: { type: Number, required: true, min: 1 },
+    label: String,
+    isActive: { type: Boolean, required: true, default: true },
+    status: { type: String, required: true, enum: ["OPEN", "OCCUPIED", "CLOSED"], default: "OPEN" },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String, required: true },
+  },
+  { ...baseOptions, collection: "tables" },
+);
+tableSchema.index({ restaurantId: 1, tableNumber: 1 }, { unique: true });
+
+const orderAddonSnapshotSchema = new Schema(
+  {
+    addonId: { type: String, required: true },
+    nameSnapshot: { type: String, required: true },
+    quantity: { type: Number, required: true, min: 1 },
+    unitPriceSnapshot: { type: Number, required: true, min: 0 },
+    total: { type: Number, required: true, min: 0 },
+  },
+  { _id: false, strict: true },
+);
+
+const orderItemSnapshotSchema = new Schema(
+  {
+    dishId: { type: String, required: true },
+    dishNameSnapshot: { type: String, required: true },
+    quantity: { type: Number, required: true, min: 1 },
+    unitPriceSnapshot: { type: Number, required: true, min: 0 },
+    addons: { type: [orderAddonSnapshotSchema], default: [] },
+    itemTotal: { type: Number, required: true, min: 0 },
+  },
+  { _id: false, strict: true },
+);
+
+const orderSchema = new Schema<RestaurantOrder>(
+  {
+    id: { type: String, required: true, unique: true, index: true },
+    restaurantId: { type: String, required: true },
+    tableId: { type: String, required: true },
+    tableNumber: { type: Number, required: true },
+    orderNumber: { type: Number, required: true },
+    customerTokenHash: { type: String, required: true, select: false },
+    idempotencyKey: { type: String, required: true, select: false },
+    status: {
+      type: String,
+      enum: ["PENDING", "ACCEPTED", "PREPARING", "READY", "SERVED", "CANCELLED"],
+      required: true,
+      default: "PENDING",
+    },
+    items: { type: [orderItemSnapshotSchema], required: true },
+    subtotal: { type: Number, required: true, min: 0 },
+    total: { type: Number, required: true, min: 0 },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String, required: true },
+  },
+  { ...baseOptions, collection: "orders" },
+);
+orderSchema.index({ restaurantId: 1, orderNumber: 1 }, { unique: true });
+orderSchema.index({ restaurantId: 1, idempotencyKey: 1 }, { unique: true });
+orderSchema.index({ restaurantId: 1, createdAt: -1 });
+
+const orderCounterSchema = new Schema(
+  { restaurantId: { type: String, required: true }, value: { type: Number, default: 1000 } },
+  { ...baseOptions, collection: "orderCounters" },
+);
+orderCounterSchema.index({ restaurantId: 1 }, { unique: true });
+
 export const RestaurantModel =
   mongoose.models.Restaurant ??
   mongoose.model<Restaurant>("Restaurant", restaurantSchema);
@@ -154,3 +227,9 @@ export const AddonModel =
   mongoose.models.Addon ?? mongoose.model<Addon>("Addon", addonSchema);
 export const MediaModel =
   mongoose.models.Media ?? mongoose.model<Media>("Media", mediaSchema);
+export const TableModel =
+  mongoose.models.Table ?? mongoose.model<RestaurantTable>("Table", tableSchema);
+export const OrderModel =
+  mongoose.models.Order ?? mongoose.model<RestaurantOrder>("Order", orderSchema);
+export const OrderCounterModel =
+  mongoose.models.OrderCounter ?? mongoose.model("OrderCounter", orderCounterSchema);

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAdminContext } from "@/lib/auth-server";
+import { getRestaurantAdminContext } from "@/lib/auth-server";
 import { restaurantService } from "@/lib/services/restaurant.service";
 
 export default async function RestaurantAdminLayout({
@@ -10,7 +10,7 @@ export default async function RestaurantAdminLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const context = await getAdminContext();
+  const context = await getRestaurantAdminContext();
   if (!context || context.role !== "RESTAURANT_ADMIN") {
     redirect("/admin/login");
   }
@@ -22,7 +22,7 @@ export default async function RestaurantAdminLayout({
     restaurant.id !== context.restaurantId ||
     restaurant.slug !== context.restaurantSlug
   ) {
-    redirect("/api/auth/logout");
+    redirect("/api/auth/logout?role=RESTAURANT_ADMIN");
   }
 
   return children;

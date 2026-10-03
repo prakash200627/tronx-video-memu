@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import {
-  ADMIN_SESSION_COOKIE,
+  sessionCookieForRole,
   createAdminSession,
   SESSION_TTL_SECONDS,
 } from "@/lib/auth-core";
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
         data: { email, role: "SUPER_ADMIN" },
       });
       response.cookies.set({
-        name: ADMIN_SESSION_COOKIE,
+        name: sessionCookieForRole("SUPER_ADMIN"),
         value: session,
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
       },
     });
     response.cookies.set({
-      name: ADMIN_SESSION_COOKIE,
+      name: sessionCookieForRole("RESTAURANT_ADMIN"),
       value: session,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

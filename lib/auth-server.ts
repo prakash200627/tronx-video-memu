@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { ADMIN_SESSION_COOKIE, readAdminSession } from "@/lib/auth-core";
+import { RESTAURANT_ADMIN_SESSION_COOKIE, SUPER_ADMIN_SESSION_COOKIE, readAdminSession } from "@/lib/auth-core";
 import { restaurantService } from "@/lib/services/restaurant.service";
 
 export type AdminContext = {
@@ -12,10 +12,10 @@ export type AdminContext = {
   restaurantSlug?: string;
 };
 
-export async function getAdminContext(): Promise<AdminContext | null> {
+async function getContextFromCookie(cookieName: string): Promise<AdminContext | null> {
   const cookieStore = await cookies();
   const session = await readAdminSession(
-    cookieStore.get(ADMIN_SESSION_COOKIE)?.value,
+    cookieStore.get(cookieName)?.value,
     process.env.AUTH_SECRET,
   );
   if (!session) return null;
@@ -27,6 +27,9 @@ export async function getAdminContext(): Promise<AdminContext | null> {
     restaurantSlug: session.restaurantSlug ?? session.restaurantId,
   };
 }
+
+export const getRestaurantAdminContext = () => getContextFromCookie(RESTAURANT_ADMIN_SESSION_COOKIE);
+export const getSuperAdminContext = () => getContextFromCookie(SUPER_ADMIN_SESSION_COOKIE);
 
 export function canManageRestaurant(
   context: AdminContext | null,
@@ -60,7 +63,7 @@ export function forbiddenResponse() {
 }
 
 export async function requireRestaurantAdmin() {
-  const context = await getAdminContext();
+  const context = await getRestaurantAdminContext();
   if (!context) {
     return { admin: null, error: unauthorizedResponse() } as const;
   }
@@ -79,7 +82,7 @@ export async function requireRestaurantAdmin() {
 }
 
 export async function requireSuperAdmin() {
-  const context = await getAdminContext();
+  const context = await getSuperAdminContext();
   if (!context) {
     return { admin: null, error: unauthorizedResponse() } as const;
   }

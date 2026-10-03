@@ -7,12 +7,14 @@ type CategoryNavProps = {
   categories: Category[];
   activeCategory: string;
   onCategoryChange: (categoryId: string) => void;
+  totalDishCount?: number;
 };
 
 export default function CategoryNav({
   categories,
   activeCategory,
   onCategoryChange,
+  totalDishCount = 0,
 }: CategoryNavProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -47,7 +49,7 @@ export default function CategoryNav({
   const handleCategoryClick = (categoryId: string) => {
     onCategoryChange(categoryId);
 
-    const targetSection = document.getElementById(`category-${categoryId}`);
+    const targetSection = document.getElementById(categoryId === "all" ? "menu-content" : `category-${categoryId}`);
     if (targetSection) {
       targetSection.scrollIntoView({
         behavior: "smooth",
@@ -59,13 +61,16 @@ export default function CategoryNav({
   return (
     <nav
       aria-label="Menu categories"
-      className="sticky top-0 z-30 border-b border-white/10 bg-black/85 backdrop-blur-md transition-colors"
+      className="border-t border-[#f0e4dc] bg-transparent transition-colors"
     >
-      <div className="mx-auto max-w-5xl px-4 sm:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div
           ref={containerRef}
           className="flex gap-2 overflow-x-auto py-3.5 scrollbar-none [-webkit-overflow-scrolling:touch]"
         >
+          <button type="button" ref={(el) => { buttonRefs.current.all = el; }} onClick={() => handleCategoryClick("all")} aria-pressed={!activeCategory} className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#602e31] ${!activeCategory ? "border-[#602e31] bg-[#602e31] text-white" : "border-[#e8d9cc] bg-white text-[#533b3d] hover:border-[#602e31]/40"}`}>
+            All <span className="ml-1 opacity-70">{totalDishCount}</span>
+          </button>
           {sortedCategories.map((category) => {
             const isActive = category.id === activeCategory;
 
@@ -79,10 +84,10 @@ export default function CategoryNav({
                 onClick={() => handleCategoryClick(category.id)}
                 aria-pressed={isActive}
                 aria-current={isActive ? "true" : undefined}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#602e31] ${
                   isActive
-                    ? "bg-white text-black shadow-md shadow-white/10"
-                    : "bg-white/[0.06] text-white/70 hover:bg-white/12 hover:text-white"
+                    ? "border-[#602e31] bg-[#602e31] text-[#fff5ec] shadow-sm"
+                    : "border-[#e8d9cc] bg-white text-[#533b3d] hover:border-[#602e31]/40 hover:text-[#241416]"
                 }`}
               >
                 {category.name}

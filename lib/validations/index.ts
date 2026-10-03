@@ -173,3 +173,28 @@ export const updateDishSchema = dishSchema
   .omit({ restaurantId: true });
 export type CreateDishInput = z.infer<typeof dishSchema>;
 export type UpdateDishInput = z.infer<typeof updateDishSchema>;
+
+export const createTableSchema = z.object({
+  tableNumber: z.number().int().min(1).max(9999),
+  label: z.string().trim().max(80).optional(),
+  isActive: z.boolean().default(true),
+  status: z.enum(["OPEN", "OCCUPIED", "CLOSED"]).default("OPEN"),
+});
+export const updateTableSchema = createTableSchema.partial();
+export const placeOrderSchema = z.object({
+  slug: z.string().min(1),
+  tableNumber: z.number().int().min(1),
+  idempotencyKey: z.string().uuid(),
+  items: z.array(z.object({
+    dishId: z.string().min(1),
+    quantity: z.number().int().min(1).max(99),
+    expectedUnitPrice: z.number().min(0),
+    selections: z.array(z.object({
+      groupId: z.string().min(1),
+      addons: z.array(z.object({ addonId: z.string().min(1), expectedUnitPrice: z.number().min(0) })).max(20),
+    })).max(30),
+  })).min(1).max(50),
+});
+export type CreateTableInput = z.infer<typeof createTableSchema>;
+export type UpdateTableInput = z.infer<typeof updateTableSchema>;
+export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;

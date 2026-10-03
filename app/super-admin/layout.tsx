@@ -35,6 +35,7 @@ export default function SuperAdminLayout({
         <div className="mt-auto border-t border-white/10 pt-4">
           <LogoutButton
             redirectTo="/super-admin/login"
+            role="SUPER_ADMIN"
             showLabel
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white"
           />

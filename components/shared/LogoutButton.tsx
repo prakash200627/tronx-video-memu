@@ -4,18 +4,20 @@ import { LogOut } from "lucide-react";
 
 type LogoutButtonProps = {
   redirectTo: "/admin/login" | "/super-admin/login";
+  role: "RESTAURANT_ADMIN" | "SUPER_ADMIN";
   className?: string;
   showLabel?: boolean;
 };
 
 export default function LogoutButton({
   redirectTo,
+  role,
   className,
   showLabel = false,
 }: LogoutButtonProps) {
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role }) });
     } finally {
       window.location.replace(redirectTo);
     }

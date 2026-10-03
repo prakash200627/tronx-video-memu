@@ -65,6 +65,7 @@ export default function AdminHeader({
         </Link>
         <LogoutButton
           redirectTo="/admin/login"
+          role="RESTAURANT_ADMIN"
           className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/60 transition hover:bg-white/5 hover:text-white"
         />
       </div>

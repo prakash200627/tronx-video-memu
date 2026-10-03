@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ADMIN_SESSION_COOKIE, readAdminSession } from "@/lib/auth-core";
+import { RESTAURANT_ADMIN_SESSION_COOKIE, SUPER_ADMIN_SESSION_COOKIE, readAdminSession } from "@/lib/auth-core";
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -8,39 +8,31 @@ export async function proxy(request: NextRequest) {
   const isSuperAdminLoginRoute = pathname === "/super-admin/login";
   const isAuthLoginRoute = pathname === "/api/auth/login";
   const isLogoutRoute = pathname === "/api/auth/logout";
+  const isCustomerOrderStatusRoute = request.method === "GET" && /^\/api\/orders\/[^/]+\/status$/.test(pathname);
   const isApiRequest = pathname.startsWith("/api/");
   const isPublicCustomerRoute =
     pathname === "/" ||
     pathname.startsWith("/menu/") ||
     (request.method === "GET" && pathname.startsWith("/api/restaurants/"));
 
-  if (isAuthLoginRoute || isLogoutRoute || isPublicCustomerRoute) {
+  if (isAuthLoginRoute || isLogoutRoute || isPublicCustomerRoute || isCustomerOrderStatusRoute) {
     return NextResponse.next();
   }
 
-  const session = await readAdminSession(
-    request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
-    process.env.AUTH_SECRET,
-  );
-  const isAuthenticated = Boolean(session);
+  const restaurantSession = await readAdminSession(request.cookies.get(RESTAURANT_ADMIN_SESSION_COOKIE)?.value, process.env.AUTH_SECRET);
+  const superSession = await readAdminSession(request.cookies.get(SUPER_ADMIN_SESSION_COOKIE)?.value, process.env.AUTH_SECRET);
 
   if (isAdminLoginRoute || isSuperAdminLoginRoute) {
-    if (!session) return NextResponse.next();
-    if (session.role === "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/super-admin", request.url));
+    if (isSuperAdminLoginRoute && superSession?.role === "SUPER_ADMIN") return NextResponse.redirect(new URL("/super-admin", request.url));
+    if (isAdminLoginRoute && restaurantSession?.role === "RESTAURANT_ADMIN") {
+      const targetRestaurant = restaurantSession.restaurantSlug || restaurantSession.restaurantId || "";
+      return NextResponse.redirect(new URL(targetRestaurant ? `/admin/${targetRestaurant}` : "/admin", request.url));
     }
-    const targetRestaurant =
-      session.restaurantSlug || session.restaurantId || "";
-    return NextResponse.redirect(
-      new URL(
-        targetRestaurant ? `/admin/${targetRestaurant}` : "/admin",
-        request.url,
-      ),
-    );
+    return NextResponse.next();
   }
 
   if (pathname.startsWith("/super-admin")) {
-    if (!session || session.role !== "SUPER_ADMIN") {
+    if (!superSession || superSession.role !== "SUPER_ADMIN") {
       const loginUrl = new URL("/super-admin/login", request.url);
       loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
       return NextResponse.redirect(loginUrl);
@@ -49,16 +41,14 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/admin")) {
-    if (!session) {
+    if (!restaurantSession) {
       const loginUrl = new URL("/admin/login", request.url);
       loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
       return NextResponse.redirect(loginUrl);
     }
-    if (session.role !== "RESTAURANT_ADMIN") {
-      return NextResponse.redirect(new URL("/super-admin", request.url));
-    }
+    if (restaurantSession.role !== "RESTAURANT_ADMIN") return NextResponse.redirect(new URL("/admin/login", request.url));
     if (pathname === "/admin" || pathname === "/admin/") {
-      const redirectSlug = session.restaurantSlug || session.restaurantId;
+      const redirectSlug = restaurantSession.restaurantSlug || restaurantSession.restaurantId;
       return NextResponse.redirect(
         new URL(
           redirectSlug ? `/admin/${redirectSlug}` : "/admin/login",
@@ -67,7 +57,7 @@ export async function proxy(request: NextRequest) {
       );
     }
     const requestedRestaurant = pathname.split("/admin/")[1]?.split("/")[0];
-    const sessionRestaurant = session.restaurantSlug || session.restaurantId;
+    const sessionRestaurant = restaurantSession.restaurantSlug || restaurantSession.restaurantId;
     if (requestedRestaurant && requestedRestaurant !== sessionRestaurant) {
       return NextResponse.redirect(
         new URL(`/admin/${sessionRestaurant || "login"}`, request.url),
@@ -77,7 +67,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!isApiRequest) return NextResponse.next();
-  if (isAuthenticated) return NextResponse.next();
+  if (restaurantSession || superSession) return NextResponse.next();
 
   return NextResponse.json(
     { success: false, error: "Authentication required" },

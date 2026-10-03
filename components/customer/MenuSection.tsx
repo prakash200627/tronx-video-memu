@@ -15,7 +15,7 @@ export default function MenuSection({
   isFirstCategory = false,
 }: MenuSectionProps) {
   const categoryDishes = dishes
-    .filter((dish) => dish.categoryId === category.id && dish.isAvailable)
+    .filter((dish) => dish.categoryId === category.id)
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
   if (categoryDishes.length === 0) {
@@ -26,20 +26,20 @@ export default function MenuSection({
     <section
       id={`category-${category.id}`}
       data-category-id={category.id}
-      className="scroll-mt-20 sm:scroll-mt-24"
+      className="scroll-mt-32 sm:scroll-mt-36"
     >
-      <div className="mb-4 flex items-baseline justify-between border-b border-white/5 pb-2">
-        <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+      <div className="mb-6 flex flex-col items-center border-b border-[#e8d9cc] pb-5 text-center">
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-[#987a6a]">From our kitchen</p>
+        <h2 className="font-serif text-3xl font-bold tracking-tight text-[#241416] sm:text-4xl">
           {category.name}
         </h2>
-
-        <span className="text-xs font-medium text-white/40">
+        <span className="mt-2 text-xs font-medium text-[#7e6568]">
           {categoryDishes.length}{" "}
           {categoryDishes.length === 1 ? "item" : "items"}
         </span>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
         {categoryDishes.map((dish, index) => (
           <DishCard
             key={dish.id}

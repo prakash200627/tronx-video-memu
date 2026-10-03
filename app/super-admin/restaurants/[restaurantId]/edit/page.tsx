@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import RestaurantEditor from "@/components/super-admin/RestaurantEditor";
-import { getAdminContext } from "@/lib/auth-server";
+import { getSuperAdminContext } from "@/lib/auth-server";
 import { restaurantService } from "@/lib/services/restaurant.service";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export default async function EditRestaurantPage({
 }: {
   params: Promise<{ restaurantId: string }>;
 }) {
-  const context = await getAdminContext();
+  const context = await getSuperAdminContext();
   if (!context || context.role !== "SUPER_ADMIN")
     redirect("/super-admin/login");
 

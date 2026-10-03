@@ -140,6 +140,64 @@ export type RestaurantMenu = {
   dishes: Dish[];
 };
 
+export type RestaurantTable = {
+  id: string;
+  restaurantId: string;
+  tableNumber: number;
+  label?: string;
+  isActive: boolean;
+  status: TableStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TableStatus = "OPEN" | "OCCUPIED" | "CLOSED";
+
+export type OrderStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "PREPARING"
+  | "READY"
+  | "SERVED"
+  | "CANCELLED";
+
+export type OrderAddonSnapshot = {
+  addonId: string;
+  nameSnapshot: string;
+  quantity: number;
+  unitPriceSnapshot: number;
+  total: number;
+};
+
+export type OrderItemSnapshot = {
+  dishId: string;
+  dishNameSnapshot: string;
+  quantity: number;
+  unitPriceSnapshot: number;
+  addons: OrderAddonSnapshot[];
+  itemTotal: number;
+};
+
+export type RestaurantOrder = {
+  id: string;
+  restaurantId: string;
+  tableId: string;
+  tableNumber: number;
+  orderNumber: number;
+  customerTokenHash: string;
+  idempotencyKey: string;
+  status: OrderStatus;
+  items: OrderItemSnapshot[];
+  subtotal: number;
+  total: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OrderSummary = Pick<RestaurantOrder,
+  "id" | "orderNumber" | "tableNumber" | "status" | "items" | "subtotal" | "total" | "createdAt" | "updatedAt"
+>;
+
 // Standard API Response envelope
 export type ApiResponse<T> =
   | { success: true; data: T; message?: string }

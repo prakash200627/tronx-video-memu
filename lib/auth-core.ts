@@ -1,4 +1,8 @@
-export const ADMIN_SESSION_COOKIE = "tronx_admin_session";
+export const SUPER_ADMIN_SESSION_COOKIE = "tronx_super_admin_session";
+export const RESTAURANT_ADMIN_SESSION_COOKIE = "tronx_restaurant_admin_session";
+export function sessionCookieForRole(role: "SUPER_ADMIN" | "RESTAURANT_ADMIN") {
+  return role === "SUPER_ADMIN" ? SUPER_ADMIN_SESSION_COOKIE : RESTAURANT_ADMIN_SESSION_COOKIE;
+}
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
 type SessionPayload = {

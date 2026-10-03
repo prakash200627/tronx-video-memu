@@ -5,6 +5,8 @@ import type {
   AddonGroup,
   Addon,
   Media,
+  RestaurantTable,
+  RestaurantOrder,
 } from "@/types";
 
 export interface IRestaurantRepository {
@@ -68,4 +70,22 @@ export interface IMediaRepository {
   findById(id: string): Promise<Media | null>;
   create(data: Omit<Media, "id" | "createdAt" | "updatedAt">): Promise<Media>;
   delete(id: string): Promise<boolean>;
+}
+
+export interface ITableRepository {
+  findByRestaurantId(restaurantId: string): Promise<RestaurantTable[]>;
+  findByRestaurantAndNumber(restaurantId: string, tableNumber: number): Promise<RestaurantTable | null>;
+  findByRestaurantAndId(restaurantId: string, id: string): Promise<RestaurantTable | null>;
+  create(data: Omit<RestaurantTable, "id" | "createdAt" | "updatedAt">): Promise<RestaurantTable>;
+  update(restaurantId: string, id: string, data: Partial<RestaurantTable>): Promise<RestaurantTable | null>;
+  deleteIfUnused(restaurantId: string, id: string): Promise<boolean>;
+}
+
+export interface IOrderRepository {
+  create(data: Omit<RestaurantOrder, "orderNumber" | "createdAt" | "updatedAt">): Promise<RestaurantOrder>;
+  findByRestaurantId(restaurantId: string): Promise<RestaurantOrder[]>;
+  findByRestaurantAndId(restaurantId: string, id: string): Promise<RestaurantOrder | null>;
+  findForCustomer(id: string): Promise<RestaurantOrder | null>;
+  updateStatus(restaurantId: string, id: string, expectedStatus: RestaurantOrder["status"], status: RestaurantOrder["status"]): Promise<RestaurantOrder | null>;
+  hasIdempotencyKey(restaurantId: string, key: string): Promise<boolean>;
 }

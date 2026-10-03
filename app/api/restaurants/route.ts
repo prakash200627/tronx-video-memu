@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { restaurantService } from "@/lib/services/restaurant.service";
 import { restaurantSchema } from "@/lib/validations";
 import {
-  getAdminContext,
+  getRestaurantAdminContext,
+  getSuperAdminContext,
   requireSuperAdmin,
   unauthorizedResponse,
 } from "@/lib/auth-server";
 
 export async function GET() {
   try {
-    const admin = await getAdminContext();
+    const admin = (await getSuperAdminContext()) ?? (await getRestaurantAdminContext());
     if (!admin) return unauthorizedResponse();
     const restaurants =
       admin.role === "SUPER_ADMIN"

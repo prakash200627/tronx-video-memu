@@ -8,6 +8,7 @@ import {
   DishModel,
   MediaModel,
   RestaurantModel,
+  TableModel,
 } from "../lib/db/models";
 
 type SeedRecord = Record<string, unknown> & { id: string };
@@ -106,6 +107,21 @@ async function upsertMany<T extends { id: string }>(
   return upserted;
 }
 
+async function upsertDemoTables(
+  tables: Array<{ id: string; restaurantId: string; tableNumber: number; isActive: boolean; status: "OPEN"; createdAt: string; updatedAt: string }>,
+): Promise<number> {
+  let upserted = 0;
+  for (const table of tables) {
+    const result = await TableModel.updateOne(
+      { restaurantId: table.restaurantId, tableNumber: table.tableNumber },
+      { $setOnInsert: table },
+      { upsert: true },
+    );
+    upserted += result.upsertedCount;
+  }
+  return upserted;
+}
+
 async function purgeLegacyRestaurantData(): Promise<void> {
   const legacyIds = ["tronx-restaurant", "restaurant-1"];
   const legacyGroups = await AddonGroupModel.find(
@@ -173,9 +189,20 @@ async function seed(): Promise<void> {
     insertedRestaurants += result.upsertedCount ?? 0;
   }
 
-  const inserted: Record<string, number> = { restaurants: insertedRestaurants };
+  const inserted: Record<string, number> = { restaurants: insertedRestaurants, tables: 0 };
 
   for (const [restaurantId, menu] of seededMenus.entries()) {
+    const demoTables = Array.from({ length: restaurantId === "moai-kitchen" ? 6 : 5 }, (_, index) => ({
+      id: `${restaurantId}-table-${index + 1}`,
+      restaurantId,
+      tableNumber: index + 1,
+      isActive: true,
+      status: "OPEN" as const,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    inserted.tables += await upsertDemoTables(demoTables);
+
     const categoryMap = new Map(
       menu.categories.map((category, index) => [
         category.id,

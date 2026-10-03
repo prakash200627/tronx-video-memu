@@ -12,6 +12,8 @@ import {
   Image as ImageIcon,
   ExternalLink,
   ChevronDown,
+  QrCode,
+  ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -60,6 +62,8 @@ export default function AdminSidebar({
       href: buildRoute("/media"),
       icon: ImageIcon,
     },
+    { label: "Tables", href: buildRoute("/tables"), icon: QrCode },
+    { label: "Orders", href: buildRoute("/orders"), icon: ClipboardList },
   ];
 
   const menuSubItems = [

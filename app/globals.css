@@ -3,6 +3,12 @@
 :root {
   --background: #000000;
   --foreground: #ededed;
+  --customer-ivory: #fff5ec;
+  --customer-cream: #faf2ea;
+  --customer-border: #e8d9cc;
+  --customer-wine: #602e31;
+  --customer-text: #241416;
+  --customer-muted: #7e6568;
 }
 
 @theme inline {
@@ -21,6 +27,29 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   overflow-x: hidden;
+}
+
+.customer-menu {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow-x: clip;
+}
+
+.customer-menu .font-serif {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.customer-card {
+  border-color: var(--customer-border);
+  background: white;
+  box-shadow: 0 2px 6px rgba(36, 20, 22, 0.04);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .customer-card:hover {
+    border-color: color-mix(in srgb, var(--customer-wine) 55%, var(--customer-border));
+    box-shadow: 0 14px 32px rgba(96, 46, 49, 0.12);
+    transform: translateY(-3px);
+  }
 }
 
 /* Cross-browser scrollbar hiding utility */

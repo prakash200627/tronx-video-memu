@@ -6,7 +6,8 @@ import {
 } from "@/lib/validations";
 import {
   forbiddenResponse,
-  getAdminContext,
+  getRestaurantAdminContext,
+  getSuperAdminContext,
   requireRestaurantAdmin,
   requireSuperAdmin,
   unauthorizedResponse,
@@ -32,7 +33,7 @@ export async function GET(
       return NextResponse.json({ success: true, data: menu });
     }
 
-    const admin = await getAdminContext();
+    const admin = (await getSuperAdminContext()) ?? (await getRestaurantAdminContext());
     if (!admin) return unauthorizedResponse();
     if (
       admin.role === "RESTAURANT_ADMIN" &&
@@ -68,7 +69,7 @@ export async function PATCH(
   { params }: { params: Promise<{ restaurantId: string }> },
 ) {
   try {
-    let admin = await getAdminContext();
+    let admin = (await getSuperAdminContext()) ?? (await getRestaurantAdminContext());
     if (!admin) return unauthorizedResponse();
     if (admin.role === "RESTAURANT_ADMIN") {
       const { admin: restaurantAdmin, error } = await requireRestaurantAdmin();
