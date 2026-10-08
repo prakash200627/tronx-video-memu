@@ -89,7 +89,10 @@ export type RestaurantAdminProfileInput = z.infer<
 export const restaurantWifiUpdateSchema = z.object({
   ssid: z.string().trim().min(1).max(32).refine((value) => !/[\u0000-\u001f\u007f]/.test(value), "SSID contains unsupported characters."),
   security: z.enum(["WPA2", "WPA3", "OPEN"]),
-  password: z.string().min(8).max(63).optional(),
+  password: z.preprocess(
+    (value) => typeof value === "string" && value.trim() === "" ? undefined : value,
+    z.string().min(8).max(63).optional(),
+  ),
   clearPassword: z.boolean().default(false),
 }).strict().superRefine((value, context) => {
   if (value.password !== undefined && value.clearPassword) {

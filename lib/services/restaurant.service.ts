@@ -14,6 +14,7 @@ import { mediaRepository } from "@/lib/repositories/media.repository";
 import cloudinary from "@/lib/cloudinary";
 import type { RestaurantWifiConfiguration } from "@/types";
 import { encryptWifiPassword, decryptWifiPassword } from "@/lib/security/wifi-crypto";
+import { getWifiCustomerDetails, resolveWifiConfigurationUpdate } from "@/lib/wifi-configuration";
 
 export type RestaurantWifiAdminView = {
   ssid: string;
@@ -62,29 +63,7 @@ export class RestaurantService {
     const current = await restaurantRepository.findWifiById(id);
     if (!current) return null;
 
-    let wifi: RestaurantWifiConfiguration;
-    if (input.security === "OPEN") {
-      wifi = { ssid: input.ssid, security: "OPEN" };
-    } else if (input.password !== undefined) {
-      wifi = { ssid: input.ssid, security: input.security, ...encryptWifiPassword(input.password) };
-    } else if (input.clearPassword) {
-      wifi = { ssid: input.ssid, security: input.security };
-    } else if (
-      current.wifi?.security !== "OPEN" &&
-      current.wifi?.passwordCiphertext &&
-      current.wifi.passwordIv &&
-      current.wifi.passwordAuthTag
-    ) {
-      wifi = {
-        ssid: input.ssid,
-        security: input.security,
-        passwordCiphertext: current.wifi.passwordCiphertext,
-        passwordIv: current.wifi.passwordIv,
-        passwordAuthTag: current.wifi.passwordAuthTag,
-      };
-    } else {
-      throw new Error("Enter a password for this secured Wi-Fi network.");
-    }
+    const wifi = resolveWifiConfigurationUpdate(current.wifi, input, encryptWifiPassword);
 
     const updated = await restaurantRepository.updateWifiConfiguration(id, wifi);
     return updated ? toWifiAdminView(updated) : null;
@@ -93,15 +72,7 @@ export class RestaurantService {
   async getWifiCustomerDetails(slug: string): Promise<RestaurantWifiCustomerView | null> {
     const restaurant = await restaurantRepository.findWifiBySlug(slug);
     if (!restaurant || restaurant.isActive === false || !restaurant.wifi?.ssid) return null;
-    const wifi = restaurant.wifi;
-    const password = wifi.passwordCiphertext && wifi.passwordIv && wifi.passwordAuthTag
-      ? decryptWifiPassword({
-          passwordCiphertext: wifi.passwordCiphertext,
-          passwordIv: wifi.passwordIv,
-          passwordAuthTag: wifi.passwordAuthTag,
-        })
-      : undefined;
-    return { ssid: wifi.ssid, security: wifi.security, ...(password ? { password } : {}) };
+    return getWifiCustomerDetails(restaurant.wifi, decryptWifiPassword);
   }
 
   async create(input: CreateRestaurantInput): Promise<Restaurant> {
