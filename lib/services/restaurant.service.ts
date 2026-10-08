@@ -12,10 +12,32 @@ import { normalizeRestaurant } from "@/lib/restaurant-normalize";
 import type { RestaurantDeleteResult } from "@/lib/repositories/types";
 import { mediaRepository } from "@/lib/repositories/media.repository";
 import cloudinary from "@/lib/cloudinary";
+import type { RestaurantWifiConfiguration } from "@/types";
+import { encryptWifiPassword, decryptWifiPassword } from "@/lib/security/wifi-crypto";
+
+export type RestaurantWifiAdminView = {
+  ssid: string;
+  security: RestaurantWifiConfiguration["security"];
+  passwordConfigured: boolean;
+};
+
+export type RestaurantWifiCustomerView = {
+  ssid: string;
+  security: RestaurantWifiConfiguration["security"];
+  password?: string;
+};
+
+function toWifiAdminView(wifi?: RestaurantWifiConfiguration): RestaurantWifiAdminView {
+  return {
+    ssid: wifi?.ssid ?? "",
+    security: wifi?.security ?? "WPA2",
+    passwordConfigured: Boolean(wifi?.passwordCiphertext && wifi.passwordIv && wifi.passwordAuthTag),
+  };
+}
 
 export class RestaurantService {
   async getAll(): Promise<Restaurant[]> {
-    return restaurantRepository.findAll();
+    return (await restaurantRepository.findAll()).map(normalizeRestaurant);
   }
 
   async getById(id: string): Promise<Restaurant | null> {
@@ -24,7 +46,62 @@ export class RestaurantService {
   }
 
   async getBySlug(slug: string): Promise<Restaurant | null> {
-    return restaurantRepository.findBySlug(slug);
+    const restaurant = await restaurantRepository.findBySlug(slug);
+    return restaurant ? normalizeRestaurant(restaurant) : null;
+  }
+
+  async getWifiAdminConfiguration(id: string): Promise<RestaurantWifiAdminView | null> {
+    const restaurant = await restaurantRepository.findWifiById(id);
+    return restaurant ? toWifiAdminView(restaurant.wifi) : null;
+  }
+
+  async updateWifiAdminConfiguration(
+    id: string,
+    input: { ssid: string; security: RestaurantWifiConfiguration["security"]; password?: string; clearPassword: boolean },
+  ): Promise<RestaurantWifiAdminView | null> {
+    const current = await restaurantRepository.findWifiById(id);
+    if (!current) return null;
+
+    let wifi: RestaurantWifiConfiguration;
+    if (input.security === "OPEN") {
+      wifi = { ssid: input.ssid, security: "OPEN" };
+    } else if (input.password !== undefined) {
+      wifi = { ssid: input.ssid, security: input.security, ...encryptWifiPassword(input.password) };
+    } else if (input.clearPassword) {
+      wifi = { ssid: input.ssid, security: input.security };
+    } else if (
+      current.wifi?.security !== "OPEN" &&
+      current.wifi?.passwordCiphertext &&
+      current.wifi.passwordIv &&
+      current.wifi.passwordAuthTag
+    ) {
+      wifi = {
+        ssid: input.ssid,
+        security: input.security,
+        passwordCiphertext: current.wifi.passwordCiphertext,
+        passwordIv: current.wifi.passwordIv,
+        passwordAuthTag: current.wifi.passwordAuthTag,
+      };
+    } else {
+      throw new Error("Enter a password for this secured Wi-Fi network.");
+    }
+
+    const updated = await restaurantRepository.updateWifiConfiguration(id, wifi);
+    return updated ? toWifiAdminView(updated) : null;
+  }
+
+  async getWifiCustomerDetails(slug: string): Promise<RestaurantWifiCustomerView | null> {
+    const restaurant = await restaurantRepository.findWifiBySlug(slug);
+    if (!restaurant || restaurant.isActive === false || !restaurant.wifi?.ssid) return null;
+    const wifi = restaurant.wifi;
+    const password = wifi.passwordCiphertext && wifi.passwordIv && wifi.passwordAuthTag
+      ? decryptWifiPassword({
+          passwordCiphertext: wifi.passwordCiphertext,
+          passwordIv: wifi.passwordIv,
+          passwordAuthTag: wifi.passwordAuthTag,
+        })
+      : undefined;
+    return { ssid: wifi.ssid, security: wifi.security, ...(password ? { password } : {}) };
   }
 
   async create(input: CreateRestaurantInput): Promise<Restaurant> {
@@ -32,7 +109,7 @@ export class RestaurantService {
     if (existing) {
       throw new Error(`A restaurant with slug '${input.slug}' already exists`);
     }
-    return restaurantRepository.create(input);
+    return normalizeRestaurant(await restaurantRepository.create(input));
   }
 
   async update(
@@ -54,7 +131,8 @@ export class RestaurantService {
     if (patch.coverImage !== undefined) patch.coverUrl = patch.coverImage;
 
     if (patch.slug && patch.slug !== id) {
-      return restaurantRepository.renameIdentity(id, patch.slug, patch);
+      const renamed = await restaurantRepository.renameIdentity(id, patch.slug, patch);
+      return renamed ? normalizeRestaurant(renamed) : null;
     }
 
     const updated = await restaurantRepository.update(id, patch);

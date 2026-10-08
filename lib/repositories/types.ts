@@ -7,6 +7,8 @@ import type {
   Media,
   RestaurantTable,
   RestaurantOrder,
+  Reservation,
+  ReservationStatus,
 } from "@/types";
 
 export interface IRestaurantRepository {
@@ -74,6 +76,7 @@ export interface IMediaRepository {
 
 export interface ITableRepository {
   findByRestaurantId(restaurantId: string): Promise<RestaurantTable[]>;
+  findBookableByRestaurant(restaurantId: string, guestCount: number): Promise<RestaurantTable[]>;
   findByRestaurantAndNumber(restaurantId: string, tableNumber: number): Promise<RestaurantTable | null>;
   findByRestaurantAndId(restaurantId: string, id: string): Promise<RestaurantTable | null>;
   create(data: Omit<RestaurantTable, "id" | "createdAt" | "updatedAt">): Promise<RestaurantTable>;
@@ -88,4 +91,12 @@ export interface IOrderRepository {
   findForCustomer(id: string): Promise<RestaurantOrder | null>;
   updateStatus(restaurantId: string, id: string, expectedStatus: RestaurantOrder["status"], status: RestaurantOrder["status"]): Promise<RestaurantOrder | null>;
   hasIdempotencyKey(restaurantId: string, key: string): Promise<boolean>;
+}
+
+export interface IReservationRepository {
+  findAvailableOverlapping(restaurantId: string, tableIds: string[], startAt: Date, endAt: Date): Promise<Reservation[]>;
+  findByRestaurant(restaurantId: string, reservationDate?: string): Promise<Reservation[]>;
+  findByRestaurantAndId(restaurantId: string, id: string): Promise<Reservation | null>;
+  createForAvailableTable(input: Omit<Reservation, "id" | "createdAt" | "updatedAt">): Promise<Reservation>;
+  updateStatus(restaurantId: string, id: string, currentStatus: ReservationStatus, status: ReservationStatus): Promise<Reservation | null>;
 }

@@ -33,6 +33,8 @@ type DishesManagerProps = {
   categories: Category[];
   addonGroups: AddonGroup[];
   restaurantId: string;
+  videoMenuEnabled?: boolean;
+  mediaLibraryEnabled?: boolean;
 };
 
 export default function DishesManager({
@@ -40,6 +42,8 @@ export default function DishesManager({
   categories,
   addonGroups,
   restaurantId,
+  videoMenuEnabled = true,
+  mediaLibraryEnabled = true,
 }: DishesManagerProps) {
   const router = useRouter();
   const [dishes, setDishes] = useState(initialDishes);
@@ -174,7 +178,8 @@ export default function DishesManager({
     const payload = {
       ...values,
       image: values.imageUrl || undefined,
-      video: values.videoUrl || undefined,
+      videoUrl: videoMenuEnabled ? values.videoUrl : undefined,
+      video: videoMenuEnabled ? values.videoUrl || undefined : undefined,
       addonGroupIds: values.addonGroupIds ?? [],
       isCustomizable:
         values.isCustomizable ?? (values.addonGroupIds?.length ?? 0) > 0,
@@ -301,7 +306,7 @@ export default function DishesManager({
               {dishes.map((dish) => {
                 const categoryName =
                   categoryMap.get(dish.categoryId) || "Uncategorized";
-                const hasVideo = Boolean(dish.videoUrl || dish.video);
+                const hasVideo = videoMenuEnabled && Boolean(dish.videoUrl || dish.video);
                 const imageSrc = dish.imageUrl || dish.image;
 
                 return (
@@ -646,15 +651,16 @@ export default function DishesManager({
                 {...register("imageUrl")}
                 className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
               />
-              <button
+              {mediaLibraryEnabled && <button
                 type="button"
                 onClick={() => setMediaPickerType("IMAGE")}
                 className="inline-flex shrink-0 items-center justify-center rounded-xl border border-white/10 px-3 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white"
               >
                 Select from Media Library
-              </button>
+              </button>}
             </div>
           </div>
+          {videoMenuEnabled && <>
           <div>
             <label className="mb-1 block text-xs text-white/60">
               Video URL
@@ -664,13 +670,13 @@ export default function DishesManager({
                 {...register("videoUrl")}
                 className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
               />
-              <button
+              {mediaLibraryEnabled && <button
                 type="button"
                 onClick={() => setMediaPickerType("VIDEO")}
                 className="inline-flex shrink-0 items-center justify-center rounded-xl border border-white/10 px-3 py-2 text-xs font-medium text-white/70 transition hover:bg-white/5 hover:text-white"
               >
                 Select from Media Library
-              </button>
+              </button>}
             </div>
           </div>
           <div>
@@ -681,7 +687,7 @@ export default function DishesManager({
               {...register("videoPosterUrl")}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
             />
-          </div>
+          </div></>}
           <div>
             <p className="mb-2 text-xs font-medium text-white/60">
               Assigned add-on groups
@@ -709,7 +715,7 @@ export default function DishesManager({
         </form>
       </AdminModal>
 
-      <MediaPicker
+      {mediaLibraryEnabled && <MediaPicker
         open={mediaPickerType !== null}
         mediaType={mediaPickerType ?? "IMAGE"}
         restaurantId={restaurantId}
@@ -727,7 +733,7 @@ export default function DishesManager({
             });
           }
         }}
-      />
+      />}
     </div>
   );
 }

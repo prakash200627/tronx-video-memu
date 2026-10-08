@@ -3,6 +3,8 @@ import cloudinary from "@/lib/cloudinary";
 import { dishService } from "@/lib/services/dish.service";
 import { mediaService } from "@/lib/services/media.service";
 import { requireRestaurantAdmin } from "@/lib/auth-server";
+import { restaurantService } from "@/lib/services/restaurant.service";
+import { requireRestaurantFeature } from "@/lib/feature-access";
 
 export const runtime = "nodejs";
 
@@ -13,6 +15,23 @@ export async function DELETE(
   try {
     const { admin, error } = await requireRestaurantAdmin();
     if (error) return error;
+
+    const restaurant = await restaurantService.getById(admin.restaurantId);
+    if (!restaurant) {
+      return NextResponse.json(
+        { success: false, error: "Restaurant not found" },
+        { status: 404 },
+      );
+    }
+
+    const featureCheck = requireRestaurantFeature(restaurant, "MEDIA_LIBRARY");
+    if (!featureCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: featureCheck.reason },
+        { status: 403 },
+      );
+    }
+
     const { mediaId } = await params;
     const media = await mediaService.getById(mediaId);
 

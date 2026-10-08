@@ -8,8 +8,10 @@ import MenuSection from "@/components/customer/MenuSection";
 import RestaurantHero from "@/components/customer/RestaurantHero";
 import DishDetailModal from "@/components/customer/DishDetailModal";
 import { api } from "@/lib/api";
-import { Minus, Plus, ShoppingBag, X } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Wifi, X } from "lucide-react";
 import type { OrderSummary } from "@/types";
+import ReservationPanel from "@/components/customer/ReservationPanel";
+import WifiAccessPanel from "@/components/customer/WifiAccessPanel";
 
 type CartSelection = { groupId: string; addonIds: string[] };
 type CartLine = { key: string; dishId: string; quantity: number; selections: CartSelection[] };
@@ -54,6 +56,11 @@ type CustomerMenuProps = {
   tableId: string | null;
   tableStatus: TableStatus | null;
   invalidTable: boolean;
+  reservationsEnabled?: boolean;
+  initialReservationView?: boolean;
+  wifiEnabled?: boolean;
+  videoMenuEnabled?: boolean;
+  tableOrderingEnabled?: boolean;
 };
 
 export default function CustomerMenu({
@@ -63,7 +70,14 @@ export default function CustomerMenu({
   tableId,
   tableStatus,
   invalidTable,
+  reservationsEnabled = false,
+  initialReservationView = false,
+  wifiEnabled = false,
+  videoMenuEnabled = true,
+  tableOrderingEnabled = true,
 }: CustomerMenuProps) {
+  const [reservationOpen, setReservationOpen] = useState(initialReservationView);
+  const [wifiOpen, setWifiOpen] = useState(false);
   const [refreshResult, setRefreshResult] = useState<{
     restaurantIdOrSlug: string;
     menu: RestaurantMenu;
@@ -103,7 +117,7 @@ export default function CustomerMenu({
   const cartKey = `tronx-cart:${menu.restaurant.id}:${tableId ?? "no-table"}`;
   const orderKey = `${cartKey}:orders`;
   const legacyOrderKey = `${cartKey}:active-order`;
-  const canOrder = Boolean(tableNumber && !invalidTable && tableStatus !== "CLOSED");
+  const canOrder = Boolean(tableOrderingEnabled && tableNumber && !invalidTable && tableStatus !== "CLOSED");
   const tableResolved = Boolean(tableNumber && tableId && !invalidTable);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartReady, setCartReady] = useState(false);
@@ -405,7 +419,8 @@ export default function CustomerMenu({
   }, [activeCategories]);
 
   return (
-    <main className="customer-menu min-h-screen bg-[#fff5ec] pb-24 text-[#241416] selection:bg-[#602e31]/20">
+    <main className="customer-menu min-h-screen bg-[var(--restaurant-background)] pb-24 text-[var(--restaurant-text)] selection:bg-[var(--restaurant-primary)]/20">
+      {(reservationsEnabled || wifiEnabled) && <div className="mx-auto flex max-w-7xl justify-end gap-2 px-4 pt-4 sm:px-6 lg:px-8">{wifiEnabled && <button type="button" onClick={() => setWifiOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-[#ead9cf] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--restaurant-primary)] shadow-sm hover:border-[var(--restaurant-primary)]"><Wifi className="h-4 w-4" />Wi-Fi</button>}{reservationsEnabled && <button type="button" onClick={() => setReservationOpen(true)} className="rounded-xl border border-[#ead9cf] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--restaurant-primary)] shadow-sm hover:border-[var(--restaurant-primary)]">Reserve a Table</button>}</div>}
       <RestaurantHero restaurant={menu.restaurant} />
 
       {tableResolved ? (
@@ -415,7 +430,7 @@ export default function CustomerMenu({
       ) : invalidTable ? (
         <div role="alert" className="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">This table link is invalid or inactive. You can browse the menu, but ordering is disabled. Please ask restaurant staff for a current QR code.</p></div>
       ) : (
-        <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8"><p className="text-xs text-[#786363]">Scan the QR code at your table to place an order.</p></div>
+        <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">{tableOrderingEnabled && <p className="text-xs text-[var(--restaurant-text-muted)]">Scan the QR code at your table to place an order.</p>}</div>
       )}
 
       {tableResolved && tableStatus === "CLOSED" && <div role="status" className="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><p className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-900">This table is currently unavailable. Please ask restaurant staff.</p></div>}
@@ -423,13 +438,13 @@ export default function CustomerMenu({
       {loadedCartKey === cartKey && customerOrders.length > 0 && (
         <section aria-live="polite" aria-label="Your orders" className="mx-auto mt-4 max-h-[55vh] max-w-7xl space-y-2 overflow-y-auto px-4 pb-1 sm:px-6 lg:px-8">
           <header className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl bg-[#fff5ec]/95 py-2 backdrop-blur-sm">
-            <div><h2 className="text-sm font-bold uppercase tracking-wider text-[#602e31]">Your Orders</h2>{tableNumber && <p className="mt-0.5 text-xs text-[#786363]">Table {tableNumber}</p>}</div>
-            <div className="text-right text-xs text-[#786363]"><p>{customerOrders.length} {customerOrders.length === 1 ? "order" : "orders"}</p><p className="font-mono font-bold text-[#602e31]">Total ₹{customerOrdersTotal}</p></div>
+            <div><h2 className="text-sm font-bold uppercase tracking-wider text-[var(--restaurant-primary)]">Your Orders</h2>{tableNumber && <p className="mt-0.5 text-xs text-[#786363]">Table {tableNumber}</p>}</div>
+            <div className="text-right text-xs text-[#786363]"><p>{customerOrders.length} {customerOrders.length === 1 ? "order" : "orders"}</p><p className="font-mono font-bold text-[var(--restaurant-primary)]">Total ₹{customerOrdersTotal}</p></div>
           </header>
           {customerOrders.map((order) => <article key={order.id} className="rounded-xl border border-[#d9c5b9] bg-white p-3 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><p className="text-xs font-bold uppercase tracking-wider text-[#987a6a]">#{order.orderNumber}</p><p className="mt-0.5 text-sm font-semibold text-[#241416]">{orderStatusMessage[order.status]}</p>{order.createdAt && <p className="mt-0.5 text-xs text-[#8a7470]">{new Date(order.createdAt).toLocaleString()}</p>}</div>
-              <span className="font-mono text-sm font-bold text-[#602e31]">₹{order.total}</span>
+              <div><p className="text-xs font-bold uppercase tracking-wider text-[#987a6a]">#{order.orderNumber}</p><p className="mt-0.5 text-sm font-semibold text-[var(--restaurant-text)]">{orderStatusMessage[order.status]}</p>{order.createdAt && <p className="mt-0.5 text-xs text-[#8a7470]">{new Date(order.createdAt).toLocaleString()}</p>}</div>
+              <span className="font-mono text-sm font-bold text-[var(--restaurant-primary)]">₹{order.total}</span>
             </div>
             {order.items && order.items.length > 0 && <ul className="mt-2 space-y-1 border-t border-[#ead9cf] pt-2">{order.items.map((item, index) => <li key={`${item.dishId}-${index}`} className="text-sm"><div className="flex justify-between gap-3"><span className="font-medium text-[#382729]">{item.quantity} × {item.dishNameSnapshot}</span><span className="font-mono text-xs text-[#695352]">₹{item.itemTotal}</span></div>{item.addons.length > 0 && <p className="mt-0.5 pl-4 text-xs text-[#786363]">{item.addons.map((addon) => `${addon.nameSnapshot}${addon.quantity > 1 ? ` × ${addon.quantity}` : ""}`).join(" · ")}</p>}</li>)}</ul>}
           </article>)}
@@ -441,7 +456,7 @@ export default function CustomerMenu({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <label className="relative block min-w-0 flex-1">
               <span className="sr-only">Search menu</span>
-              <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search dishes..." className="h-11 w-full rounded-xl border border-[#ead9cf] bg-white px-4 text-sm text-[#241416] outline-none placeholder:text-[#9a8580] focus:border-[#602e31] focus:ring-2 focus:ring-[#602e31]/10" />
+              <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search dishes..." className="h-11 w-full rounded-xl border border-[#ead9cf] bg-white px-4 text-sm text-[var(--restaurant-text)] outline-none placeholder:text-[#9a8580] focus:border-[var(--restaurant-primary)] focus:ring-2 focus:ring-[var(--restaurant-primary)]/10" />
             </label>
             <button type="button" aria-pressed={vegetarianOnly} onClick={() => setVegetarianOnly((value) => !value)} className={`h-11 shrink-0 rounded-xl border px-4 text-sm font-semibold transition ${vegetarianOnly ? "border-[#3c7651] bg-[#e8f2e9] text-[#28563a]" : "border-[#ead9cf] bg-white text-[#514143] hover:border-[#b99a8d]"}`}>
               Veg only {vegetarianOnly ? "✓" : ""}
@@ -452,11 +467,11 @@ export default function CustomerMenu({
       </div>
 
       <div id="menu-content" className="mx-auto max-w-7xl space-y-10 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-        <div className="flex items-center justify-between gap-3 text-sm text-[#786363]">
+        <div className="flex items-center justify-between gap-3 text-sm text-[var(--restaurant-text-muted)]">
           <p>{filteredDishes.length} {filteredDishes.length === 1 ? "dish" : "dishes"}</p>
-          {(searchQuery || vegetarianOnly) && <button type="button" onClick={() => { setSearchQuery(""); setVegetarianOnly(false); }} className="font-semibold text-[#602e31] underline-offset-4 hover:underline">Clear filters</button>}
+          {(searchQuery || vegetarianOnly) && <button type="button" onClick={() => { setSearchQuery(""); setVegetarianOnly(false); }} className="font-semibold text-[var(--restaurant-primary)] underline-offset-4 hover:underline">Clear filters</button>}
         </div>
-        {filteredDishes.length === 0 && <div className="rounded-2xl border border-dashed border-[#d9c5b9] px-6 py-14 text-center text-sm text-[#786363]">No dishes match your search. Try another dish name or clear the filters.</div>}
+        {filteredDishes.length === 0 && <div className="rounded-2xl border border-dashed border-[#d9c5b9] px-6 py-14 text-center text-sm text-[var(--restaurant-text-muted)]">{menu.dishes.length === 0 ? "This restaurant hasn’t added any dishes yet." : "No dishes match your search or filters. Try another search or clear the filters."}</div>}
         {activeCategories.map((category, index) => (
           <MenuSection
             key={category.id}
@@ -464,6 +479,7 @@ export default function CustomerMenu({
             dishes={filteredDishes}
             onDishClick={(dish: Dish) => setSelectedDishId(dish.id)}
             isFirstCategory={index === 0}
+            videoMenuEnabled={videoMenuEnabled}
           />
         ))}
       </div>
@@ -474,30 +490,35 @@ export default function CustomerMenu({
           dish={selectedDish}
           onClose={() => setSelectedDishId(null)}
           canOrder={canOrder}
+          orderingEnabled={tableOrderingEnabled}
+          videoMenuEnabled={videoMenuEnabled}
           onAddToCart={addToCart}
         />
       ) : null}
 
-      {loadedCartKey === cartKey && cart.length > 0 && (
-        <button type="button" onClick={() => setCartOpen(true)} className="fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-2xl items-center justify-between gap-4 rounded-2xl bg-[#602e31] px-5 py-3.5 text-left text-white shadow-2xl sm:inset-x-6 sm:bottom-5">
+      {reservationsEnabled && reservationOpen && <ReservationPanel restaurantSlug={menu.restaurant.slug} onClose={() => setReservationOpen(false)} />}
+      {wifiEnabled && wifiOpen && <WifiAccessPanel slug={menu.restaurant.slug} onClose={() => setWifiOpen(false)} />}
+
+      {tableOrderingEnabled && loadedCartKey === cartKey && cart.length > 0 && (
+        <button type="button" onClick={() => setCartOpen(true)} className="fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-2xl items-center justify-between gap-4 rounded-2xl bg-[var(--restaurant-primary)] px-5 py-3.5 text-left text-white shadow-2xl sm:inset-x-6 sm:bottom-5">
           <span className="flex items-center gap-3"><ShoppingBag className="h-5 w-5" /><span><span className="block text-sm font-bold">{cartCount} {cartCount === 1 ? "item" : "items"}</span><span className="text-xs text-white/70">View your cart</span></span></span>
           <span className="font-mono text-lg font-bold">₹{cartTotal} <span aria-hidden="true">→</span></span>
         </button>
       )}
 
-      {cartOpen && (
+      {tableOrderingEnabled && cartOpen && (
         <div role="dialog" aria-modal="true" aria-labelledby="cart-title" className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center sm:p-5" onClick={(event) => { if (event.target === event.currentTarget) setCartOpen(false); }}>
           <div className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl bg-[#fffaf6] shadow-2xl sm:rounded-3xl">
-            <header className="flex items-center justify-between border-b border-[#ead9cf] px-5 py-4"><div><h2 id="cart-title" className="font-serif text-2xl font-bold text-[#241416]">Your order</h2><p className="mt-1 text-xs text-[#786363]">Table {tableNumber}</p></div><button onClick={() => setCartOpen(false)} aria-label="Close cart" className="grid h-10 w-10 place-items-center rounded-full border border-[#ead9cf] text-[#602e31]"><X className="h-5 w-5" /></button></header>
+            <header className="flex items-center justify-between border-b border-[#ead9cf] px-5 py-4"><div><h2 id="cart-title" className="font-serif text-2xl font-bold text-[var(--restaurant-text)]">Your order</h2><p className="mt-1 text-xs text-[var(--restaurant-text-muted)]">Table {tableNumber}</p></div><button onClick={() => setCartOpen(false)} aria-label="Close cart" className="grid h-10 w-10 place-items-center rounded-full border border-[#ead9cf] text-[var(--restaurant-primary)]"><X className="h-5 w-5" /></button></header>
             <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-5">
               {cart.map((line) => {
                 const dish = menu.dishes.find((entry) => entry.id === line.dishId);
                 if (!dish) return <p key={line.key} className="text-sm text-rose-700">A cart dish is no longer on this menu. Clear your cart and add it again.</p>;
                 const addonNames = line.selections.flatMap((selection) => selection.addonIds.map((id) => dish.addonGroups?.find((group) => group.id === selection.groupId)?.addons.find((addon) => addon.id === id)?.name).filter((name): name is string => Boolean(name)));
-                return <article key={line.key} className="rounded-2xl border border-[#ead9cf] bg-white p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-[#241416]">{dish.name}</h3>{addonNames.length > 0 && <p className="mt-1 text-xs leading-relaxed text-[#786363]">{addonNames.join(" · ")}</p>}</div><span className="font-mono text-sm font-bold text-[#602e31]">₹{priceForLine({ ...line, quantity: 1 })}</span></div><div className="mt-3 flex items-center justify-between"><div className="flex items-center gap-1 rounded-xl border border-[#ead9cf] p-1"><button aria-label={`Decrease ${dish.name} quantity`} onClick={() => changeQuantity(line.key, -1)} className="grid h-8 w-8 place-items-center rounded-lg text-[#602e31]"><Minus className="h-4 w-4" /></button><span className="min-w-6 text-center text-sm font-semibold">{line.quantity}</span><button aria-label={`Increase ${dish.name} quantity`} onClick={() => changeQuantity(line.key, 1)} className="grid h-8 w-8 place-items-center rounded-lg text-[#602e31]"><Plus className="h-4 w-4" /></button></div><button onClick={() => setCart((current) => current.filter((entry) => entry.key !== line.key))} className="text-xs font-semibold text-[#8b3f43] underline underline-offset-4">Remove</button></div></article>;
+                return <article key={line.key} className="rounded-2xl border border-[#ead9cf] bg-white p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-[var(--restaurant-text)]">{dish.name}</h3>{addonNames.length > 0 && <p className="mt-1 text-xs leading-relaxed text-[var(--restaurant-text-muted)]">{addonNames.join(" · ")}</p>}</div><span className="font-mono text-sm font-bold text-[var(--restaurant-primary)]">₹{priceForLine({ ...line, quantity: 1 })}</span></div><div className="mt-3 flex items-center justify-between"><div className="flex items-center gap-1 rounded-xl border border-[#ead9cf] p-1"><button aria-label={`Decrease ${dish.name} quantity`} onClick={() => changeQuantity(line.key, -1)} className="grid h-8 w-8 place-items-center rounded-lg text-[var(--restaurant-primary)]"><Minus className="h-4 w-4" /></button><span className="min-w-6 text-center text-sm font-semibold">{line.quantity}</span><button aria-label={`Increase ${dish.name} quantity`} onClick={() => changeQuantity(line.key, 1)} className="grid h-8 w-8 place-items-center rounded-lg text-[var(--restaurant-primary)]"><Plus className="h-4 w-4" /></button></div><button onClick={() => setCart((current) => current.filter((entry) => entry.key !== line.key))} className="text-xs font-semibold text-[#8b3f43] underline underline-offset-4">Remove</button></div></article>;
               })}
             </div>
-            <footer className="border-t border-[#ead9cf] bg-white p-4 sm:p-5"><div className="mb-3 flex items-center justify-between"><button type="button" onClick={() => setCart([])} className="text-xs font-semibold text-[#8b3f43] underline underline-offset-4">Clear cart</button><p className="font-mono text-lg font-bold text-[#241416]">Subtotal ₹{cartTotal}</p></div>{orderError && <p role="alert" className="mb-3 text-sm text-rose-700">{orderError}</p>}<button type="button" disabled={!canOrder || cart.length === 0 || submitting || cart.some((line) => !menu.dishes.some((dish) => dish.id === line.dishId && dish.isAvailable))} onClick={() => void placeOrder()} className="h-12 w-full rounded-xl bg-[#602e31] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-45">{submitting ? "Placing order…" : `Place order · ₹${cartTotal}`}</button></footer>
+            <footer className="border-t border-[#ead9cf] bg-white p-4 sm:p-5"><div className="mb-3 flex items-center justify-between"><button type="button" onClick={() => setCart([])} className="text-xs font-semibold text-[#8b3f43] underline underline-offset-4">Clear cart</button><p className="font-mono text-lg font-bold text-[var(--restaurant-text)]">Subtotal ₹{cartTotal}</p></div>{orderError && <p role="alert" className="mb-3 text-sm text-rose-700">{orderError}</p>}<button type="button" disabled={!canOrder || cart.length === 0 || submitting || cart.some((line) => !menu.dishes.some((dish) => dish.id === line.dishId && dish.isAvailable))} onClick={() => void placeOrder()} className="h-12 w-full rounded-xl bg-[var(--restaurant-primary)] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-45">{submitting ? "Placing order…" : `Place order · ₹${cartTotal}`}</button></footer>
           </div>
         </div>
       )}

@@ -14,17 +14,22 @@ import {
   ChevronDown,
   QrCode,
   ClipboardList,
+  Users,
+  CalendarDays,
 } from "lucide-react";
 import { useState } from "react";
+import type { FeatureKey } from "@/types";
 
 type AdminSidebarProps = {
   isOpen?: boolean;
   onClose?: () => void;
+  features: Record<FeatureKey, boolean>;
 };
 
 export default function AdminSidebar({
   isOpen = false,
   onClose,
+  features,
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const restaurantSlug = pathname.match(/^\/admin\/([^/]+)(?:\/|$)/)?.[1] ?? "";
@@ -57,13 +62,11 @@ export default function AdminSidebar({
       href: buildRoute("/availability"),
       icon: Clock,
     },
-    {
-      label: "Media",
-      href: buildRoute("/media"),
-      icon: ImageIcon,
-    },
-    { label: "Tables", href: buildRoute("/tables"), icon: QrCode },
-    { label: "Orders", href: buildRoute("/orders"), icon: ClipboardList },
+    ...(features.MEDIA_LIBRARY ? [{ label: "Media", href: buildRoute("/media"), icon: ImageIcon }] : []),
+    ...(features.TABLE_MANAGEMENT ? [{ label: "Tables", href: buildRoute("/tables"), icon: QrCode }] : []),
+    ...(features.ORDER_MANAGEMENT ? [{ label: "Orders", href: buildRoute("/orders"), icon: ClipboardList }] : []),
+    ...(features.RESERVATIONS ? [{ label: "Reservations", href: buildRoute("/reservations"), icon: CalendarDays }] : []),
+    ...(features.CAPTAIN_ACCESS ? [{ label: "Captains", href: buildRoute("/captains"), icon: Users }] : []),
   ];
 
   const menuSubItems = [

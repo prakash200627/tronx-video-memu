@@ -108,13 +108,13 @@ async function upsertMany<T extends { id: string }>(
 }
 
 async function upsertDemoTables(
-  tables: Array<{ id: string; restaurantId: string; tableNumber: number; isActive: boolean; status: "OPEN"; createdAt: string; updatedAt: string }>,
+  tables: Array<{ id: string; restaurantId: string; tableNumber: number; capacity: number; isActive: boolean; status: "OPEN"; createdAt: string; updatedAt: string }>,
 ): Promise<number> {
   let upserted = 0;
   for (const table of tables) {
     const result = await TableModel.updateOne(
       { restaurantId: table.restaurantId, tableNumber: table.tableNumber },
-      { $setOnInsert: table },
+      { $setOnInsert: table, $set: { capacity: table.capacity } },
       { upsert: true },
     );
     upserted += result.upsertedCount;
@@ -196,6 +196,7 @@ async function seed(): Promise<void> {
       id: `${restaurantId}-table-${index + 1}`,
       restaurantId,
       tableNumber: index + 1,
+      capacity: index === 0 ? 2 : 4,
       isActive: true,
       status: "OPEN" as const,
       createdAt: now,

@@ -10,6 +10,8 @@ type DishDetailModalProps = {
   dish: Dish | null;
   onClose: () => void;
   canOrder: boolean;
+  orderingEnabled?: boolean;
+  videoMenuEnabled?: boolean;
   onAddToCart: (entry: { dishId: string; quantity: number; selections: { groupId: string; addonIds: string[] }[] }) => void;
 };
 
@@ -32,6 +34,8 @@ export default function DishDetailModal({
   dish,
   onClose,
   canOrder,
+  orderingEnabled = true,
+  videoMenuEnabled = true,
   onAddToCart,
 }: DishDetailModalProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -176,17 +180,17 @@ export default function DishDetailModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="dish-modal-title"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#241416]/60 backdrop-blur-md sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--restaurant-text)]/60 backdrop-blur-md sm:items-center sm:p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
     >
-      <div className="relative flex max-h-[92vh] w-full max-w-full flex-col overflow-hidden rounded-t-[2rem] border border-[#e8d9cc] bg-[#fff5ec] text-[#241416] shadow-2xl sm:max-h-[88vh] sm:max-w-3xl sm:rounded-3xl lg:h-[min(88vh,820px)] lg:max-h-[820px] lg:max-w-6xl">
+      <div className="relative flex max-h-[92vh] w-full max-w-full flex-col overflow-hidden rounded-t-[2rem] border border-[#e8d9cc] bg-[var(--restaurant-background)] text-[var(--restaurant-text)] shadow-2xl sm:max-h-[88vh] sm:max-w-3xl sm:rounded-3xl lg:h-[min(88vh,820px)] lg:max-h-[820px] lg:max-w-6xl">
         {/* Mobile Swipe / Drag Pill Handle */}
         <div className="flex w-full items-center justify-center pt-3 pb-1 sm:hidden">
-          <div className="h-1.5 w-12 rounded-full bg-[#b86268]/45" />
+          <div className="h-1.5 w-12 rounded-full bg-[var(--restaurant-primary)]/45" />
         </div>
 
         {/* Accessible Close Button */}
@@ -196,7 +200,7 @@ export default function DishDetailModal({
             type="button"
             onClick={onClose}
             aria-label="Close dish details"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#602e31] shadow-md backdrop-blur-md transition hover:bg-white hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#602e31]"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[var(--restaurant-primary)] shadow-md backdrop-blur-md transition hover:bg-white hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--restaurant-primary)]"
           >
             <X className="h-5 w-5" />
           </button>
@@ -213,10 +217,10 @@ export default function DishDetailModal({
           className="flex-1 overflow-y-auto overscroll-contain scrollbar-none lg:grid lg:min-h-0 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden"
         >
           {/* 1. MEDIA AREA */}
-          <div className="relative w-full lg:h-full lg:min-h-0 lg:overflow-hidden lg:bg-[#2d1719]">
-            {dish.videoUrl ? (
+          <div className="relative w-full lg:h-full lg:min-h-0 lg:overflow-hidden lg:bg-[var(--restaurant-secondary)]">
+            {videoMenuEnabled && dish.videoUrl ? (
               <div className="p-4 sm:p-6 lg:flex lg:h-full lg:items-center lg:justify-center">
-                <div className="relative mx-auto aspect-[16/11] w-full max-w-xl overflow-hidden rounded-2xl bg-[#2d1719] shadow-lg lg:aspect-auto lg:h-full lg:max-h-full">
+                <div className="relative mx-auto aspect-[16/11] w-full max-w-xl overflow-hidden rounded-2xl bg-[var(--restaurant-secondary)] shadow-lg lg:aspect-auto lg:h-full lg:max-h-full">
                   {dish.imageUrl && (
                     <Image
                       src={dish.imageUrl}
@@ -236,12 +240,12 @@ export default function DishDetailModal({
                     loop
                     controls={false}
                     playbackPriority
-                    className="absolute inset-0 rounded-2xl bg-[#2d1719]"
+                    className="absolute inset-0 rounded-2xl bg-[var(--restaurant-secondary)]"
                   />
                 </div>
               </div>
             ) : dish.imageUrl ? (
-              <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#2d1719] sm:aspect-[16/9]">
+              <div className="relative aspect-[16/10] w-full overflow-hidden bg-[var(--restaurant-secondary)] sm:aspect-[16/9]">
                 <Image
                   src={dish.imageUrl}
                   alt={dish.name}
@@ -284,12 +288,12 @@ export default function DishDetailModal({
                   />
                 </span>
 
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#7e6568]">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--restaurant-text-muted)]">
                   {dish.isVeg ? "Pure Veg" : "Non-Veg"}
                 </span>
 
                 {dish.addonGroups && dish.addonGroups.length > 0 && (
-                  <span className="rounded-full bg-[#f8efea] px-2.5 py-0.5 text-xs font-medium text-[#602e31]">
+                  <span className="rounded-full bg-[var(--restaurant-primary)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--restaurant-primary)]">
                     Customisable
                   </span>
                 )}
@@ -299,13 +303,13 @@ export default function DishDetailModal({
               <div className="flex items-start justify-between gap-4">
                 <h2
                   id="dish-modal-title"
-                  className="font-serif text-3xl font-bold tracking-tight text-[#241416] sm:text-4xl"
+                  className="font-serif text-3xl font-bold tracking-tight text-[var(--restaurant-text)] sm:text-4xl"
                 >
                   {dish.name}
                 </h2>
 
                 <div className="shrink-0 text-right">
-                  <span className="font-mono text-xl font-extrabold text-[#241416] sm:text-2xl">
+                  <span className="font-mono text-xl font-extrabold text-[var(--restaurant-text)] sm:text-2xl">
                     ₹{dish.price}
                   </span>
                 </div>
@@ -313,7 +317,7 @@ export default function DishDetailModal({
 
               {/* Description */}
               {dish.description && (
-                <p className="text-sm leading-relaxed text-[#7e6568] sm:text-base">
+                <p className="text-sm leading-relaxed text-[var(--restaurant-text-muted)] sm:text-base">
                   {dish.description}
                 </p>
               )}
@@ -323,10 +327,10 @@ export default function DishDetailModal({
             {dish.addonGroups && dish.addonGroups.some((group) => group.isActive !== false) && (
               <div className="space-y-6 border-t border-[#e8d9cc] pt-6">
                 <div>
-                  <h3 className="font-serif text-xl font-bold tracking-tight text-[#241416]">
+                  <h3 className="font-serif text-xl font-bold tracking-tight text-[var(--restaurant-text)]">
                     Customise Your Dish
                   </h3>
-                  <p className="mt-0.5 text-xs text-[#7e6568]">
+                  <p className="mt-0.5 text-xs text-[var(--restaurant-text-muted)]">
                     Select your preferred add-ons and accompaniments below.
                   </p>
                 </div>
@@ -347,22 +351,22 @@ export default function DishDetailModal({
                         {/* Group Header (Stable height) */}
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#f0e5dc] pb-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-base font-semibold text-[#241416]">
+                            <span className="text-base font-semibold text-[var(--restaurant-text)]">
                               {group.name}
                             </span>
                             {group.isRequired ? (
-                              <span className="rounded-full bg-[#f8efea] px-2 py-0.5 text-[11px] font-semibold text-[#602e31]">
+                              <span className="rounded-full bg-[var(--restaurant-primary)]/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--restaurant-primary)]">
                                 Required
                               </span>
                             ) : (
-                              <span className="rounded-full bg-[#faf2ea] px-2 py-0.5 text-[11px] font-medium text-[#7e6568]">
+                              <span className="rounded-full bg-[#faf2ea] px-2 py-0.5 text-[11px] font-medium text-[var(--restaurant-text-muted)]">
                                 Optional
                               </span>
                             )}
                           </div>
 
                           {/* Rule hints */}
-                          <div className="text-xs text-[#7e6568]">
+                          <div className="text-xs text-[var(--restaurant-text-muted)]">
                             {isSingleSelect
                               ? "Choose 1"
                               : group.minSelect > 0
@@ -388,7 +392,7 @@ export default function DishDetailModal({
                                   isDisabled
                                     ? "cursor-not-allowed opacity-40"
                                     : "cursor-pointer hover:bg-[#faf2ea]"
-                                } ${isSelected ? "bg-[#f8efea]" : ""}`}
+                                } ${isSelected ? "bg-[var(--restaurant-primary)]/10" : ""}`}
                               >
                                 {/* 
                                   Controlled Accessible Input:
@@ -418,7 +422,7 @@ export default function DishDetailModal({
                                         : "rounded-md border"
                                     } ${
                                       isSelected
-                                        ? "border-[#602e31] bg-[#602e31] text-white shadow-xs"
+                                        ? "border-[var(--restaurant-primary)] bg-[var(--restaurant-primary)] text-white shadow-xs"
                                         : "border-[#bfaea3] bg-transparent"
                                     }`}
                                   >
@@ -433,15 +437,15 @@ export default function DishDetailModal({
                                   <span
                                     className={`text-sm sm:text-base ${
                                       isSelected
-                                        ? "font-medium text-[#241416]"
-                                        : "text-[#533b3d]"
+                                        ? "font-medium text-[var(--restaurant-text)]"
+                                        : "text-[var(--restaurant-text-muted)]"
                                     }`}
                                   >
                                     {addon.name}
                                   </span>
                                 </div>
 
-                                <span className="text-sm font-semibold text-[#602e31]">
+                                <span className="text-sm font-semibold text-[var(--restaurant-primary)]">
                                   {addon.price > 0
                                     ? `+₹${addon.price}`
                                     : "Free"}
@@ -464,20 +468,20 @@ export default function DishDetailModal({
           - Does not scroll with modal content
           - Always visible at the bottom of the modal card
         */}
-        <div className="shrink-0 border-t border-[#e8d9cc] bg-white px-5 py-4 backdrop-blur-md sm:px-8 sm:py-4">
+        {orderingEnabled && <div className="shrink-0 border-t border-[#e8d9cc] bg-white px-5 py-4 backdrop-blur-md sm:px-8 sm:py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="block text-xs uppercase tracking-wider text-[#7e6568]">
+              <span className="block text-xs uppercase tracking-wider text-[var(--restaurant-text-muted)]">
                 Total Price
               </span>
-              <span className="font-mono text-xl font-extrabold text-[#241416] sm:text-2xl">
+              <span className="font-mono text-xl font-extrabold text-[var(--restaurant-text)] sm:text-2xl">
                 ₹{totalPrice * quantity}
               </span>
             </div>
             <div className="flex items-center gap-2 rounded-xl border border-[#e8d9cc] bg-[#fffaf6] p-1">
-              <button type="button" aria-label="Decrease quantity" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="grid h-9 w-9 place-items-center rounded-lg text-[#602e31] hover:bg-[#f3e6dd]"><Minus className="h-4 w-4" /></button>
+              <button type="button" aria-label="Decrease quantity" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--restaurant-primary)] hover:bg-[#f3e6dd]"><Minus className="h-4 w-4" /></button>
               <span className="min-w-5 text-center text-sm font-bold">{quantity}</span>
-              <button type="button" aria-label="Increase quantity" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="grid h-9 w-9 place-items-center rounded-lg text-[#602e31] hover:bg-[#f3e6dd]"><Plus className="h-4 w-4" /></button>
+              <button type="button" aria-label="Increase quantity" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--restaurant-primary)] hover:bg-[#f3e6dd]"><Plus className="h-4 w-4" /></button>
             </div>
             <button
               type="button"
@@ -491,12 +495,12 @@ export default function DishDetailModal({
                 });
                 onClose();
               }}
-              className="flex-1 max-w-xs rounded-2xl bg-[#602e31] py-3.5 text-center text-sm font-bold text-white transition hover:bg-[#4d2326] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#602e31] disabled:cursor-not-allowed disabled:opacity-45"
+              className="flex-1 max-w-xs rounded-2xl bg-[var(--restaurant-primary)] py-3.5 text-center text-sm font-bold text-white transition hover:bg-[var(--restaurant-primary-dark)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--restaurant-primary)] disabled:cursor-not-allowed disabled:opacity-45"
             >
               {dish.isAvailable ? canOrder ? "Add to cart" : "Scan a table QR to order" : "Unavailable"}
             </button>
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );

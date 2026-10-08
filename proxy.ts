@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { RESTAURANT_ADMIN_SESSION_COOKIE, SUPER_ADMIN_SESSION_COOKIE, readAdminSession } from "@/lib/auth-core";
+import { CAPTAIN_SESSION_COOKIE, RESTAURANT_ADMIN_SESSION_COOKIE, SUPER_ADMIN_SESSION_COOKIE, readAdminSession } from "@/lib/auth-core";
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -8,6 +8,13 @@ export async function proxy(request: NextRequest) {
   const isSuperAdminLoginRoute = pathname === "/super-admin/login";
   const isAuthLoginRoute = pathname === "/api/auth/login";
   const isLogoutRoute = pathname === "/api/auth/logout";
+  const isCaptainAuthRoute = pathname === "/api/captain/login" || pathname === "/api/captain/logout";
+  const isPublicReservationRoute = request.method === "POST" && (
+    pathname === "/api/public/reservations/availability" ||
+    pathname === "/api/public/reservations" ||
+    pathname === "/api/public/orders"
+  );
+  const isPublicWifiRoute = request.method === "GET" && /^\/api\/public\/restaurants\/[^/]+\/wifi$/.test(pathname);
   const isCustomerOrderStatusRoute = request.method === "GET" && /^\/api\/orders\/[^/]+\/status$/.test(pathname);
   const isApiRequest = pathname.startsWith("/api/");
   const isPublicCustomerRoute =
@@ -15,12 +22,30 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/menu/") ||
     (request.method === "GET" && pathname.startsWith("/api/restaurants/"));
 
-  if (isAuthLoginRoute || isLogoutRoute || isPublicCustomerRoute || isCustomerOrderStatusRoute) {
+  if (isAuthLoginRoute || isLogoutRoute || isCaptainAuthRoute || isPublicCustomerRoute || isCustomerOrderStatusRoute || isPublicReservationRoute || isPublicWifiRoute) {
     return NextResponse.next();
   }
 
   const restaurantSession = await readAdminSession(request.cookies.get(RESTAURANT_ADMIN_SESSION_COOKIE)?.value, process.env.AUTH_SECRET);
   const superSession = await readAdminSession(request.cookies.get(SUPER_ADMIN_SESSION_COOKIE)?.value, process.env.AUTH_SECRET);
+  const captainSession = await readAdminSession(request.cookies.get(CAPTAIN_SESSION_COOKIE)?.value, process.env.AUTH_SECRET);
+
+  if (pathname === "/captain/login") {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/captain/")) {
+    if (!captainSession || captainSession.role !== "CAPTAIN" || !captainSession.restaurantSlug) {
+      const loginUrl = new URL("/captain/login", request.url);
+      loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+      return NextResponse.redirect(loginUrl);
+    }
+    const requestedRestaurant = pathname.split("/captain/")[1]?.split("/")[0];
+    if (requestedRestaurant !== captainSession.restaurantSlug) {
+      return NextResponse.redirect(new URL(`/captain/${captainSession.restaurantSlug}`, request.url));
+    }
+    return NextResponse.next();
+  }
 
   if (isAdminLoginRoute || isSuperAdminLoginRoute) {
     if (isSuperAdminLoginRoute && superSession?.role === "SUPER_ADMIN") return NextResponse.redirect(new URL("/super-admin", request.url));
@@ -67,7 +92,11 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!isApiRequest) return NextResponse.next();
-  if (restaurantSession || superSession) return NextResponse.next();
+  if (pathname.startsWith("/api/captain/")) {
+    if (captainSession?.role === "CAPTAIN") return NextResponse.next();
+    return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
+  }
+  if (restaurantSession || superSession || captainSession) return NextResponse.next();
 
   return NextResponse.json(
     { success: false, error: "Authentication required" },
@@ -76,5 +105,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/super-admin/:path*", "/api/:path*"],
+  matcher: ["/admin/:path*", "/super-admin/:path*", "/captain/:path*", "/api/:path*"],
 };

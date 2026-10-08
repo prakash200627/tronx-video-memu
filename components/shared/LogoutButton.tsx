@@ -3,8 +3,8 @@
 import { LogOut } from "lucide-react";
 
 type LogoutButtonProps = {
-  redirectTo: "/admin/login" | "/super-admin/login";
-  role: "RESTAURANT_ADMIN" | "SUPER_ADMIN";
+  redirectTo: "/admin/login" | "/super-admin/login" | "/captain/login";
+  role: "RESTAURANT_ADMIN" | "SUPER_ADMIN" | "CAPTAIN";
   className?: string;
   showLabel?: boolean;
 };

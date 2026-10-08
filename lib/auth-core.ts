@@ -1,13 +1,19 @@
 export const SUPER_ADMIN_SESSION_COOKIE = "tronx_super_admin_session";
 export const RESTAURANT_ADMIN_SESSION_COOKIE = "tronx_restaurant_admin_session";
-export function sessionCookieForRole(role: "SUPER_ADMIN" | "RESTAURANT_ADMIN") {
-  return role === "SUPER_ADMIN" ? SUPER_ADMIN_SESSION_COOKIE : RESTAURANT_ADMIN_SESSION_COOKIE;
+export const CAPTAIN_SESSION_COOKIE = "tronx_captain_session";
+export type SessionRole = "SUPER_ADMIN" | "RESTAURANT_ADMIN" | "CAPTAIN";
+export function sessionCookieForRole(role: SessionRole) {
+  if (role === "SUPER_ADMIN") return SUPER_ADMIN_SESSION_COOKIE;
+  if (role === "CAPTAIN") return CAPTAIN_SESSION_COOKIE;
+  return RESTAURANT_ADMIN_SESSION_COOKIE;
 }
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
 type SessionPayload = {
   email: string;
-  role: "SUPER_ADMIN" | "RESTAURANT_ADMIN";
+  role: SessionRole;
+  captainId?: string;
+  captainUpdatedAt?: string;
   restaurantId?: string;
   restaurantSlug?: string;
   exp: number;
@@ -59,6 +65,8 @@ export async function createAdminSession(
   role: SessionPayload["role"] = "RESTAURANT_ADMIN",
   restaurantId?: string,
   restaurantSlug?: string,
+  captainId?: string,
+  captainUpdatedAt?: string,
 ): Promise<string> {
   const payload = encodeBase64Url(
     JSON.stringify({
@@ -66,6 +74,8 @@ export async function createAdminSession(
       role,
       restaurantId,
       restaurantSlug,
+      captainId,
+      captainUpdatedAt,
       exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
     } satisfies SessionPayload),
   );

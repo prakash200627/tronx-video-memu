@@ -8,12 +8,27 @@ import type {
   Restaurant,
   RestaurantTable,
   RestaurantOrder,
+  RestaurantTheme,
+  RestaurantWifiConfiguration,
+  Captain,
+  Reservation,
 } from "@/types";
 
 const baseOptions = {
   strict: true,
   versionKey: false as const,
 };
+
+const restaurantWifiSchema = new Schema<RestaurantWifiConfiguration>(
+  {
+    ssid: { type: String, required: true, trim: true, maxlength: 32 },
+    security: { type: String, required: true, enum: ["WPA2", "WPA3", "OPEN"] },
+    passwordCiphertext: String,
+    passwordIv: String,
+    passwordAuthTag: String,
+  },
+  { _id: false, strict: true },
+);
 
 const restaurantSchema = new Schema<Restaurant>(
   {
@@ -41,6 +56,41 @@ const restaurantSchema = new Schema<Restaurant>(
     coverUrl: String,
     createdAt: String,
     updatedAt: String,
+    subscriptionPlan: {
+      type: String,
+      enum: ["STARTER", "PRO", "ENTERPRISE"],
+      default: "PRO",
+    },
+    subscriptionStatus: {
+      type: String,
+      enum: ["ACTIVE", "TRIAL", "PAST_DUE", "CANCELLED"],
+      default: "ACTIVE",
+    },
+    subscriptionEnabled: { type: Boolean, default: true },
+    featureOverrides: {
+      type: Map,
+      of: Boolean,
+      default: {},
+    },
+    theme: {
+      type: {
+        primaryColor: String,
+        secondaryColor: String,
+        accentColor: String,
+        backgroundColor: String,
+        textColor: String,
+        buttonStyle: {
+          type: String,
+          enum: ["filled", "outlined", "gradient"],
+        },
+        borderRadius: {
+          type: String,
+          enum: ["sharp", "rounded", "pill"],
+        },
+      },
+      default: {},
+    },
+    wifi: { type: restaurantWifiSchema, default: undefined },
   },
   { ...baseOptions, collection: "restaurants" },
 );
@@ -147,8 +197,15 @@ const tableSchema = new Schema<RestaurantTable>(
     restaurantId: { type: String, required: true },
     tableNumber: { type: Number, required: true, min: 1 },
     label: String,
+    capacity: { type: Number, min: 1 },
+    reservationRevision: { type: Number, min: 0, default: 0 },
     isActive: { type: Boolean, required: true, default: true },
-    status: { type: String, required: true, enum: ["OPEN", "OCCUPIED", "CLOSED"], default: "OPEN" },
+    status: {
+      type: String,
+      required: true,
+      enum: ["OPEN", "OCCUPIED", "CLOSED"],
+      default: "OPEN",
+    },
     createdAt: { type: String, required: true },
     updatedAt: { type: String, required: true },
   },
@@ -190,7 +247,14 @@ const orderSchema = new Schema<RestaurantOrder>(
     idempotencyKey: { type: String, required: true, select: false },
     status: {
       type: String,
-      enum: ["PENDING", "ACCEPTED", "PREPARING", "READY", "SERVED", "CANCELLED"],
+      enum: [
+        "PENDING",
+        "ACCEPTED",
+        "PREPARING",
+        "READY",
+        "SERVED",
+        "CANCELLED",
+      ],
       required: true,
       default: "PENDING",
     },
@@ -207,9 +271,51 @@ orderSchema.index({ restaurantId: 1, idempotencyKey: 1 }, { unique: true });
 orderSchema.index({ restaurantId: 1, createdAt: -1 });
 
 const orderCounterSchema = new Schema(
-  { restaurantId: { type: String, required: true }, value: { type: Number, default: 1000 } },
+  {
+    restaurantId: { type: String, required: true },
+    value: { type: Number, default: 1000 },
+  },
   { ...baseOptions, collection: "orderCounters" },
 );
+const captainSchema = new Schema<Captain>(
+  {
+    id: { type: String, required: true, unique: true, index: true },
+    restaurantId: { type: String, required: true, index: true },
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    passwordHash: { type: String, required: true, select: false },
+    isActive: { type: Boolean, required: true, default: true },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String, required: true },
+  },
+  { ...baseOptions, collection: "captains" },
+);
+captainSchema.index({ restaurantId: 1, email: 1 }, { unique: true });
+const reservationSchema = new Schema<Reservation>(
+  {
+    id: { type: String, required: true, unique: true, index: true },
+    restaurantId: { type: String, required: true, index: true },
+    tableId: { type: String, required: true },
+    tableNumberSnapshot: { type: Number, required: true },
+    customerName: { type: String, required: true, trim: true },
+    customerPhone: { type: String, required: true },
+    customerEmail: { type: String, lowercase: true },
+    reservationDate: { type: String, required: true },
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
+    startAt: { type: Date, required: true },
+    endAt: { type: Date, required: true },
+    timezone: { type: String, required: true, enum: ["Asia/Kolkata"], default: "Asia/Kolkata" },
+    guestCount: { type: Number, required: true, min: 1 },
+    specialRequest: { type: String, maxlength: 1000 },
+    status: { type: String, required: true, enum: ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "NO_SHOW"], default: "PENDING" },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String, required: true },
+  },
+  { ...baseOptions, collection: "reservations" },
+);
+reservationSchema.index({ restaurantId: 1, tableId: 1, status: 1, startAt: 1, endAt: 1 });
+reservationSchema.index({ restaurantId: 1, reservationDate: 1, startTime: 1 });
 orderCounterSchema.index({ restaurantId: 1 }, { unique: true });
 
 export const RestaurantModel =
@@ -228,8 +334,17 @@ export const AddonModel =
 export const MediaModel =
   mongoose.models.Media ?? mongoose.model<Media>("Media", mediaSchema);
 export const TableModel =
-  mongoose.models.Table ?? mongoose.model<RestaurantTable>("Table", tableSchema);
+  mongoose.models.Table ??
+  mongoose.model<RestaurantTable>("Table", tableSchema);
 export const OrderModel =
-  mongoose.models.Order ?? mongoose.model<RestaurantOrder>("Order", orderSchema);
+  mongoose.models.Order ??
+  mongoose.model<RestaurantOrder>("Order", orderSchema);
 export const OrderCounterModel =
-  mongoose.models.OrderCounter ?? mongoose.model("OrderCounter", orderCounterSchema);
+  mongoose.models.OrderCounter ??
+  mongoose.model("OrderCounter", orderCounterSchema);
+export const CaptainModel =
+  mongoose.models.Captain ??
+  mongoose.model<Captain>("Captain", captainSchema);
+export const ReservationModel =
+  mongoose.models.Reservation ??
+  mongoose.model<Reservation>("Reservation", reservationSchema);

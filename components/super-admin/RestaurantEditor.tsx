@@ -2,7 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import type { Restaurant } from "@/types";
+import type {
+  Restaurant,
+  RestaurantTheme,
+  FeatureKey,
+} from "@/types";
+import { DEFAULT_PLAN, PLAN_ENTITLEMENTS, hasRestaurantFeature } from "@/lib/features";
+
+const featureKeys: FeatureKey[] = ["VIDEO_MENU", "TABLE_MANAGEMENT", "TABLE_ORDERING", "ORDER_MANAGEMENT", "MEDIA_LIBRARY", "RESERVATIONS", "CAPTAIN_ACCESS", "WIFI", "CUSTOM_THEME", "ANALYTICS"];
 
 type RestaurantFields = {
   name: string;
@@ -24,6 +31,10 @@ type RestaurantFields = {
   };
   isOpen: boolean;
   isActive: boolean;
+  subscriptionEnabled: boolean;
+  subscriptionPlan: Restaurant["subscriptionPlan"];
+  featureOverrides: Partial<Record<FeatureKey, boolean>>;
+  theme: RestaurantTheme;
 };
 
 const emptyFields: RestaurantFields = {
@@ -46,6 +57,18 @@ const emptyFields: RestaurantFields = {
   },
   isOpen: true,
   isActive: true,
+  subscriptionEnabled: true,
+  subscriptionPlan: DEFAULT_PLAN,
+  featureOverrides: {},
+  theme: {
+    primaryColor: "#602e31",
+    secondaryColor: "#2d1719",
+    accentColor: "#602e31",
+    backgroundColor: "#ffffff",
+    textColor: "#241416",
+    buttonStyle: "filled",
+    borderRadius: "rounded",
+  },
 };
 
 export default function RestaurantEditor({
@@ -76,6 +99,18 @@ export default function RestaurantEditor({
           },
           isOpen: restaurant.isOpen,
           isActive: restaurant.isActive !== false,
+          subscriptionEnabled: restaurant.subscriptionEnabled !== false,
+          subscriptionPlan: restaurant.subscriptionPlan ?? DEFAULT_PLAN,
+          featureOverrides: { ...restaurant.featureOverrides },
+          theme: {
+            primaryColor: restaurant.theme?.primaryColor ?? "#602e31",
+            secondaryColor: restaurant.theme?.secondaryColor ?? "#2d1719",
+            accentColor: restaurant.theme?.accentColor ?? "#602e31",
+            backgroundColor: restaurant.theme?.backgroundColor ?? "#ffffff",
+            textColor: restaurant.theme?.textColor ?? "#241416",
+            buttonStyle: restaurant.theme?.buttonStyle ?? "filled",
+            borderRadius: restaurant.theme?.borderRadius ?? "rounded",
+          },
         }
       : emptyFields,
   );
@@ -94,6 +129,15 @@ export default function RestaurantEditor({
     setFields((current) => ({
       ...current,
       socialLinks: { ...current.socialLinks, [key]: value },
+    }));
+
+  const setThemeField = (
+    key: keyof RestaurantTheme,
+    value: string,
+  ) =>
+    setFields((current) => ({
+      ...current,
+      theme: { ...current.theme, [key]: value },
     }));
 
   const save = async (event: FormEvent<HTMLFormElement>) => {
@@ -116,8 +160,8 @@ export default function RestaurantEditor({
       if (!response.ok || !result.success) {
         throw new Error(result.error || "Restaurant could not be saved");
       }
-      router.push("/super-admin");
       router.refresh();
+      if (!restaurant) router.push("/super-admin");
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -275,6 +319,129 @@ export default function RestaurantEditor({
           />
           Platform active
         </label>
+      </div>
+      <div className="space-y-4 border-b border-white/10 pb-5">
+        <h2 className="text-lg font-semibold">Subscription & Features</h2>
+        <label className="flex items-center gap-2 text-sm text-white/75">
+          <input type="checkbox" checked={fields.subscriptionEnabled} onChange={(event) => setField("subscriptionEnabled", event.target.checked)} />
+          Subscription {fields.subscriptionEnabled ? "ON" : "OFF"}
+        </label>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-white/70">Feature Overrides</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {featureKeys.map((feature) => (
+              <div key={feature} className="rounded-lg border border-white/10 p-3 text-sm text-white/75">
+                {(() => {
+                  const effective = hasRestaurantFeature(fields, feature);
+                  const override = fields.featureOverrides[feature];
+                  const planAccess = PLAN_ENTITLEMENTS[fields.subscriptionPlan ?? DEFAULT_PLAN].includes(feature);
+                  const configuredAccess = override ?? planAccess;
+                  return <>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium">{feature.replace(/_/g, " ").toLowerCase()}</p>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={configuredAccess}
+                        aria-label={`${feature.replace(/_/g, " ")} feature setting`}
+                        onClick={() => setFields((current) => ({
+                          ...current,
+                          featureOverrides: { ...current.featureOverrides, [feature]: !configuredAccess },
+                        }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${configuredAccess ? "bg-emerald-500" : "bg-zinc-700"}`}
+                      >
+                        <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${configuredAccess ? "translate-x-6" : "translate-x-1"}`} />
+                        <span className="sr-only">{configuredAccess ? "ON" : "OFF"}</span>
+                      </button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-white/50">
+                      <span>Effective access: <strong className={effective ? "text-emerald-300" : "text-white/70"}>{effective ? "ON" : "OFF"}</strong></span>
+                      <span>{override === true ? "Explicit override: ON" : override === false ? "Explicit override: OFF" : `Use plan default (${planAccess ? "ON" : "OFF"})`}</span>
+                    </div>
+                    {override !== undefined && <button
+                      type="button"
+                      onClick={() => setFields((current) => {
+                        const featureOverrides = { ...current.featureOverrides };
+                        delete featureOverrides[feature];
+                        return { ...current, featureOverrides };
+                      })}
+                      className="mt-2 text-[11px] font-medium text-sky-300 underline underline-offset-2 hover:text-sky-200"
+                    >Use plan default</button>}
+                  </>;
+                })()}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="space-y-4 border-b border-white/10 pb-5">
+        <h2 className="text-lg font-semibold">Theme &amp; Branding</h2>
+        <p className="text-xs text-white/50">
+          Custom theme is applied when the subscription is ON and CUSTOM_THEME is ON. Otherwise the default TRONX theme is used.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {(
+            [
+              ["primaryColor", "Primary Color", "#602e31"],
+              ["secondaryColor", "Secondary Color", "#2d1719"],
+              ["accentColor", "Accent Color", "#602e31"],
+              ["backgroundColor", "Background Color", "#ffffff"],
+              ["textColor", "Text Color", "#241416"],
+            ] as const
+          ).map(([key, label, placeholder]) => (
+            <label key={key} className="space-y-1.5 text-sm text-white/70">
+              {label}
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={fields.theme[key] && /^#[0-9A-Fa-f]{6}$/.test(fields.theme[key]!) ? fields.theme[key]! : placeholder}
+                  onChange={(event) => setThemeField(key, event.target.value)}
+                  className="h-9 w-9 rounded-lg border border-white/10 bg-transparent p-0.5 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  maxLength={7}
+                  pattern="#[0-9A-Fa-f]{6}"
+                  title="Enter a 6-digit hex color such as #602e31"
+                  value={fields.theme[key] || ""}
+                  onChange={(event) => setThemeField(key, event.target.value)}
+                  placeholder={placeholder}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white font-mono text-xs"
+                />
+              </div>
+            </label>
+          ))}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="space-y-1.5 text-sm text-white/70">
+            Button Style
+            <select
+              value={fields.theme.buttonStyle || "filled"}
+              onChange={(event) =>
+                setThemeField("buttonStyle", event.target.value)
+              }
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white"
+            >
+              <option value="filled">Filled</option>
+              <option value="outlined">Outlined</option>
+              <option value="gradient">Gradient</option>
+            </select>
+          </label>
+          <label className="space-y-1.5 text-sm text-white/70">
+            Border Radius
+            <select
+              value={fields.theme.borderRadius || "rounded"}
+              onChange={(event) =>
+                setThemeField("borderRadius", event.target.value)
+              }
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white"
+            >
+              <option value="sharp">Sharp (0px)</option>
+              <option value="rounded">Rounded (12px)</option>
+              <option value="pill">Pill (Full)</option>
+            </select>
+          </label>
+        </div>
       </div>
       <div className="flex gap-3">
         <button

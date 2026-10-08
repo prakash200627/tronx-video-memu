@@ -6,6 +6,7 @@ type MenuSectionProps = {
   dishes: Dish[];
   onDishClick: (dish: Dish) => void;
   isFirstCategory?: boolean;
+  videoMenuEnabled?: boolean;
 };
 
 export default function MenuSection({
@@ -13,6 +14,7 @@ export default function MenuSection({
   dishes,
   onDishClick,
   isFirstCategory = false,
+  videoMenuEnabled = true,
 }: MenuSectionProps) {
   const categoryDishes = dishes
     .filter((dish) => dish.categoryId === category.id)
@@ -29,11 +31,11 @@ export default function MenuSection({
       className="scroll-mt-32 sm:scroll-mt-36"
     >
       <div className="mb-6 flex flex-col items-center border-b border-[#e8d9cc] pb-5 text-center">
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-[#987a6a]">From our kitchen</p>
-        <h2 className="font-serif text-3xl font-bold tracking-tight text-[#241416] sm:text-4xl">
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--restaurant-primary)]">From our kitchen</p>
+        <h2 className="font-serif text-3xl font-bold tracking-tight text-[var(--restaurant-text)] sm:text-4xl">
           {category.name}
         </h2>
-        <span className="mt-2 text-xs font-medium text-[#7e6568]">
+        <span className="mt-2 text-xs font-medium text-[var(--restaurant-text-muted)]">
           {categoryDishes.length}{" "}
           {categoryDishes.length === 1 ? "item" : "items"}
         </span>
@@ -46,6 +48,7 @@ export default function MenuSection({
             dish={dish}
             onClick={onDishClick}
             priority={isFirstCategory && index < 2}
+            videoMenuEnabled={videoMenuEnabled}
           />
         ))}
       </div>

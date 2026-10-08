@@ -13,6 +13,12 @@ export default function RestaurantsManager({
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeOverrides, setActiveOverrides] = useState<Record<string, boolean>>({});
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+  const items = restaurants.filter((restaurant) => !deletedIds.includes(restaurant.id)).map((restaurant) => ({
+    ...restaurant,
+    ...(activeOverrides[restaurant.id] === undefined ? {} : { isActive: activeOverrides[restaurant.id] }),
+  }));
 
   const setActive = async (restaurant: Restaurant) => {
     setPendingId(restaurant.id);
@@ -30,6 +36,7 @@ export default function RestaurantsManager({
       if (!response.ok || !result.success) {
         throw new Error(result.error || "Restaurant update failed");
       }
+      setActiveOverrides((current) => ({ ...current, [restaurant.id]: restaurant.isActive === false }));
       router.refresh();
     } catch (updateError) {
       setError(
@@ -64,6 +71,7 @@ export default function RestaurantsManager({
       if (!response.ok || !result.success) {
         throw new Error(result.error || "Restaurant could not be deleted");
       }
+      setDeletedIds((current) => [...new Set([...current, restaurant.id])]);
       router.refresh();
     } catch (deleteError) {
       setError(
@@ -79,7 +87,7 @@ export default function RestaurantsManager({
   return (
     <div className="space-y-4">
       {error ? <p className="text-sm text-rose-400">{error}</p> : null}
-      {restaurants.map((restaurant) => (
+      {items.map((restaurant) => (
         <article
           key={restaurant.id}
           className="flex flex-col gap-4 border-b border-white/10 py-5 sm:flex-row sm:items-center sm:justify-between"
@@ -92,6 +100,7 @@ export default function RestaurantsManager({
             <p className="mt-1 text-xs text-white/45">
               {restaurant.isActive === false ? "Deactivated" : "Active"}
               {restaurant.isOpen ? " · Open for orders" : " · Closed"}
+              {` · Subscription ${restaurant.subscriptionEnabled === false ? "OFF" : "ON"}`}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -131,7 +140,7 @@ export default function RestaurantsManager({
           </div>
         </article>
       ))}
-      {restaurants.length === 0 ? (
+      {items.length === 0 ? (
         <p className="py-8 text-sm text-white/55">No restaurants available.</p>
       ) : null}
     </div>

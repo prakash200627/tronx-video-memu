@@ -7,7 +7,7 @@ type RestaurantHeroProps = {
 
 export default function RestaurantHero({ restaurant }: RestaurantHeroProps) {
   return (
-    <header className="relative overflow-hidden bg-[#241416]">
+    <header className="relative overflow-hidden bg-[var(--restaurant-secondary)]">
       {/* Cover image or fallback */}
       <div className="relative h-64 w-full sm:h-80 lg:h-[22rem]">
         {restaurant.coverUrl ? (
@@ -23,7 +23,7 @@ export default function RestaurantHero({ restaurant }: RestaurantHeroProps) {
           <div className="absolute inset-0 bg-linear-to-br from-zinc-800 via-zinc-900 to-black" />
         )}
 
-        <div className="absolute inset-0 bg-linear-to-t from-[#241416]/90 via-[#241416]/50 to-[#241416]/25" />
+        <div className="absolute inset-0 bg-linear-to-t from-[var(--restaurant-secondary)]/90 via-[var(--restaurant-secondary)]/50 to-[var(--restaurant-secondary)]/25" />
       </div>
 
       <div className="absolute inset-0 flex items-center justify-center px-5 text-center">
@@ -39,7 +39,7 @@ export default function RestaurantHero({ restaurant }: RestaurantHeroProps) {
                   className="object-cover"
                 />
               ) : (
-                <span className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+                <span className="text-xl font-bold tracking-tight text-[#602e31] sm:text-2xl">
                   {restaurant.name.charAt(0) || "T"}
                 </span>
               )}
@@ -47,7 +47,7 @@ export default function RestaurantHero({ restaurant }: RestaurantHeroProps) {
 
             {/* Name & Tagline */}
             <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#e8b896] sm:text-xs">Restaurant menu</p>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[var(--restaurant-accent)] sm:text-xs">Restaurant menu</p>
               <h1 className="font-serif text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
                 {restaurant.name}
               </h1>

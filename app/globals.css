@@ -3,17 +3,39 @@
 :root {
   --background: #000000;
   --foreground: #ededed;
+
+  /* Default TRONX Restaurant Theme Variables */
+  --restaurant-primary: #602e31;
+  --restaurant-primary-light: #744245;
+  --restaurant-primary-dark: #4c1a1d;
+  --restaurant-secondary: #2d1719;
+  --restaurant-accent: #e8b896;
+  --restaurant-background: #ffffff;
+  --restaurant-text: #241416;
+  --restaurant-text-muted: #7e6568;
+  --restaurant-border-radius: 0.75rem;
+  --restaurant-button-style: filled;
+
   --customer-ivory: #fff5ec;
   --customer-cream: #faf2ea;
   --customer-border: #e8d9cc;
-  --customer-wine: #602e31;
-  --customer-text: #241416;
-  --customer-muted: #7e6568;
+  --customer-wine: var(--restaurant-primary);
+  --customer-text: var(--restaurant-text);
+  --customer-muted: var(--restaurant-text-muted);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-restaurant-primary: var(--restaurant-primary);
+  --color-restaurant-primary-light: var(--restaurant-primary-light);
+  --color-restaurant-primary-dark: var(--restaurant-primary-dark);
+  --color-restaurant-secondary: var(--restaurant-secondary);
+  --color-restaurant-accent: var(--restaurant-accent);
+  --color-restaurant-background: var(--restaurant-background);
+  --color-restaurant-text: var(--restaurant-text);
+  --color-restaurant-text-muted: var(--restaurant-text-muted);
+  --radius-restaurant: var(--restaurant-border-radius);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -40,13 +62,14 @@ body {
 
 .customer-card {
   border-color: var(--customer-border);
-  background: white;
+  background: var(--restaurant-background);
   box-shadow: 0 2px 6px rgba(36, 20, 22, 0.04);
+  border-radius: var(--restaurant-border-radius);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .customer-card:hover {
-    border-color: color-mix(in srgb, var(--customer-wine) 55%, var(--customer-border));
+    border-color: color-mix(in srgb, var(--restaurant-primary) 55%, var(--customer-border));
     box-shadow: 0 14px 32px rgba(96, 46, 49, 0.12);
     transform: translateY(-3px);
   }

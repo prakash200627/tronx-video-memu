@@ -68,7 +68,7 @@ export default function CategoryNav({
           ref={containerRef}
           className="flex gap-2 overflow-x-auto py-3.5 scrollbar-none [-webkit-overflow-scrolling:touch]"
         >
-          <button type="button" ref={(el) => { buttonRefs.current.all = el; }} onClick={() => handleCategoryClick("all")} aria-pressed={!activeCategory} className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#602e31] ${!activeCategory ? "border-[#602e31] bg-[#602e31] text-white" : "border-[#e8d9cc] bg-white text-[#533b3d] hover:border-[#602e31]/40"}`}>
+          <button type="button" ref={(el) => { buttonRefs.current.all = el; }} onClick={() => handleCategoryClick("all")} aria-pressed={!activeCategory} className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--restaurant-primary)] ${!activeCategory ? "border-[var(--restaurant-primary)] bg-[var(--restaurant-primary)] text-white" : "border-[#e8d9cc] bg-white text-[var(--restaurant-text-muted)] hover:border-[var(--restaurant-primary)]/40"}`}>
             All <span className="ml-1 opacity-70">{totalDishCount}</span>
           </button>
           {sortedCategories.map((category) => {
@@ -84,10 +84,10 @@ export default function CategoryNav({
                 onClick={() => handleCategoryClick(category.id)}
                 aria-pressed={isActive}
                 aria-current={isActive ? "true" : undefined}
-                className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#602e31] ${
+                className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--restaurant-primary)] ${
                   isActive
-                    ? "border-[#602e31] bg-[#602e31] text-[#fff5ec] shadow-sm"
-                    : "border-[#e8d9cc] bg-white text-[#533b3d] hover:border-[#602e31]/40 hover:text-[#241416]"
+                    ? "border-[var(--restaurant-primary)] bg-[var(--restaurant-primary)] text-white shadow-sm"
+                    : "border-[#e8d9cc] bg-white text-[var(--restaurant-text-muted)] hover:border-[var(--restaurant-primary)]/40 hover:text-[var(--restaurant-text)]"
                 }`}
               >
                 {category.name}

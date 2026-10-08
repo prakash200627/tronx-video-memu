@@ -7,11 +7,13 @@ import LogoutButton from "@/components/shared/LogoutButton";
 type AdminHeaderProps = {
   onToggleSidebar: () => void;
   restaurantSlug?: string;
+  restaurantIsOpen: boolean;
 };
 
 export default function AdminHeader({
   onToggleSidebar,
   restaurantSlug,
+  restaurantIsOpen,
 }: AdminHeaderProps) {
   const restaurantName = restaurantSlug
     ? restaurantSlug
@@ -43,10 +45,10 @@ export default function AdminHeader({
 
       {/* Right: Status badge & Preview Menu link */}
       <div className="flex items-center gap-3">
-        <div className="hidden items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 sm:flex">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-medium text-emerald-400">
-            Open for Orders
+        <div className={`hidden items-center gap-1.5 rounded-full border px-2.5 py-1 sm:flex ${restaurantIsOpen ? "border-emerald-500/20 bg-emerald-500/10" : "border-rose-500/20 bg-rose-500/10"}`}>
+          <span className={`h-2 w-2 rounded-full ${restaurantIsOpen ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
+          <span className={`text-xs font-medium ${restaurantIsOpen ? "text-emerald-400" : "text-rose-400"}`}>
+            {restaurantIsOpen ? "Open for Orders" : "Closed for Orders"}
           </span>
         </div>
 

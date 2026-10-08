@@ -3,7 +3,9 @@ import { dishService } from "@/lib/services/dish.service";
 import { dishSchema } from "@/lib/validations";
 import { categoryService } from "@/lib/services/category.service";
 import { addonService } from "@/lib/services/addon.service";
+import { restaurantService } from "@/lib/services/restaurant.service";
 import { requireRestaurantAdmin } from "@/lib/auth-server";
+import { requireRestaurantFeature } from "@/lib/feature-access";
 
 export async function GET(request: Request) {
   try {
@@ -53,6 +55,25 @@ export async function POST(request: Request) {
       ...body,
       restaurantId: admin.restaurantId,
     });
+
+    const restaurant = await restaurantService.getById(admin.restaurantId);
+    if (!restaurant) {
+      return NextResponse.json(
+        { success: false, error: "Restaurant not found" },
+        { status: 404 },
+      );
+    }
+
+    if (validated.video || validated.videoUrl) {
+      const featureCheck = requireRestaurantFeature(restaurant, "VIDEO_MENU");
+      if (!featureCheck.allowed) {
+        return NextResponse.json(
+          { success: false, error: featureCheck.reason },
+          { status: 403 },
+        );
+      }
+    }
+
     const category = await categoryService.getById(validated.categoryId);
     if (!category || category.restaurantId !== admin.restaurantId) {
       return NextResponse.json(

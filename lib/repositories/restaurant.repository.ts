@@ -1,4 +1,4 @@
-import type { Restaurant } from "@/types";
+import type { Restaurant, RestaurantWifiConfiguration } from "@/types";
 import type { IRestaurantRepository, RestaurantDeleteResult } from "./types";
 import { connectToDatabase } from "@/lib/db/mongodb";
 import {
@@ -30,6 +30,31 @@ export class RestaurantRepository implements IRestaurantRepository {
       slug: { $regex: `^${escapeRegExp(slug)}$`, $options: "i" },
     }).lean();
     return restaurant ? toDomain<Restaurant>(restaurant) : null;
+  }
+
+  async findWifiById(id: string): Promise<Pick<Restaurant, "isActive" | "wifi"> | null> {
+    await connectToDatabase();
+    const restaurant = await RestaurantModel.findOne({ id }, { id: 1, isActive: 1, wifi: 1 }).lean();
+    return restaurant ? { isActive: restaurant.isActive, wifi: restaurant.wifi as RestaurantWifiConfiguration | undefined } : null;
+  }
+
+  async findWifiBySlug(slug: string): Promise<Pick<Restaurant, "isActive" | "wifi"> | null> {
+    await connectToDatabase();
+    const restaurant = await RestaurantModel.findOne(
+      { slug: { $regex: `^${escapeRegExp(slug)}$`, $options: "i" } },
+      { id: 1, isActive: 1, wifi: 1 },
+    ).lean();
+    return restaurant ? { isActive: restaurant.isActive, wifi: restaurant.wifi as RestaurantWifiConfiguration | undefined } : null;
+  }
+
+  async updateWifiConfiguration(id: string, wifi: RestaurantWifiConfiguration): Promise<RestaurantWifiConfiguration | null> {
+    await connectToDatabase();
+    const updated = await RestaurantModel.findOneAndUpdate(
+      { id },
+      { $set: { wifi, updatedAt: new Date().toISOString() } },
+      { returnDocument: "after", runValidators: true, projection: { wifi: 1 } },
+    ).lean();
+    return updated?.wifi as RestaurantWifiConfiguration | undefined ?? null;
   }
 
   async create(

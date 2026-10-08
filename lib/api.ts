@@ -37,9 +37,9 @@ async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
 export const api = {
   // Tables and restaurant order management
   getTables: () => fetcher<RestaurantTable[]>("/api/tables"),
-  createTable: (data: { tableNumber: number; label?: string }) =>
+  createTable: (data: { tableNumber: number; label?: string; capacity: number }) =>
     fetcher<RestaurantTable>("/api/tables", { method: "POST", body: JSON.stringify(data) }),
-  updateTable: (id: string, data: Partial<Pick<RestaurantTable, "tableNumber" | "label" | "isActive" | "status">>) =>
+  updateTable: (id: string, data: Partial<Pick<RestaurantTable, "tableNumber" | "label" | "capacity" | "isActive" | "status">>) =>
     fetcher<RestaurantTable>(`/api/tables/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteTable: (id: string) => fetcher<{ deleted: boolean }>(`/api/tables/${id}`, { method: "DELETE" }),
   getOrders: () => fetcher<OrderSummary[]>("/api/orders"),
@@ -47,9 +47,7 @@ export const api = {
     fetcher<OrderSummary>(`/api/orders/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
   // Public Menu
   getPublicMenu: (restaurantIdOrSlug: string) =>
-    fetcher<RestaurantMenu>(
-      `/api/restaurants/${restaurantIdOrSlug}?fullMenu=true`,
-    ),
+    fetcher<RestaurantMenu>(`/api/restaurants/${restaurantIdOrSlug}?fullMenu=true`),
 
   // Media
   getMedia: (restaurantId: string) =>

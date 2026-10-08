@@ -35,6 +35,11 @@ export class OrderService {
     return (await orderRepository.findByRestaurantId(restaurantId)).map(customerView);
   }
 
+  async getForRestaurant(restaurantId: string, id: string) {
+    const order = await orderRepository.findByRestaurantAndId(restaurantId, id);
+    return order ? customerView(order) : null;
+  }
+
   async createPublic(input: PlaceOrderInput) {
     const menu = await restaurantService.getFullMenu(input.slug);
     if (!menu) throw new OrderServiceError("Restaurant not found.", 404);

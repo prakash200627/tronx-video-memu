@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import type { UploadApiErrorResponse, UploadApiResponse } from "cloudinary";
 import cloudinary from "@/lib/cloudinary";
 import { mediaService } from "@/lib/services/media.service";
+import { restaurantService } from "@/lib/services/restaurant.service";
 import type { MediaResourceType } from "@/types";
 import { requireRestaurantAdmin } from "@/lib/auth-server";
+import { requireRestaurantFeature } from "@/lib/feature-access";
 
 export const runtime = "nodejs";
 
@@ -26,6 +28,26 @@ export async function POST(request: Request) {
 
     const file = formData.get("file");
     const restaurantId = admin.restaurantId;
+
+    const restaurant = await restaurantService.getById(restaurantId);
+    if (!restaurant) {
+      return NextResponse.json(
+        { success: false, error: "Restaurant not found" },
+        { status: 404 },
+      );
+    }
+
+    const isVideo = file instanceof File && file.type.startsWith("video/");
+    const featureCheck = requireRestaurantFeature(
+      restaurant,
+      isVideo ? "VIDEO_MENU" : "MEDIA_LIBRARY",
+    );
+    if (!featureCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: featureCheck.reason },
+        { status: 403 },
+      );
+    }
 
     if (!restaurantId) {
       return NextResponse.json(

@@ -1,5 +1,5 @@
 // User & Authentication Roles
-export type UserRole = "SUPER_ADMIN" | "RESTAURANT_ADMIN";
+export type UserRole = "SUPER_ADMIN" | "RESTAURANT_ADMIN" | "CAPTAIN";
 
 export type User = {
   id: string;
@@ -12,12 +12,66 @@ export type User = {
   updatedAt: string;
 };
 
+export type Captain = {
+  id: string;
+  restaurantId: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CaptainView = Omit<Captain, "passwordHash">;
+
 export type RestaurantSocialLinks = {
   instagram?: string;
   facebook?: string;
   twitter?: string;
   website?: string;
 };
+
+export type RestaurantWifiSecurity = "WPA2" | "WPA3" | "OPEN";
+
+/** Stored Wi-Fi secrets are encrypted with a server-side key. Never serialize this object to a client. */
+export type RestaurantWifiConfiguration = {
+  ssid: string;
+  security: RestaurantWifiSecurity;
+  passwordCiphertext?: string;
+  passwordIv?: string;
+  passwordAuthTag?: string;
+};
+
+// Restaurant Theme/Branding
+export type RestaurantTheme = {
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  buttonStyle?: "filled" | "outlined" | "gradient";
+  borderRadius?: "sharp" | "rounded" | "pill";
+};
+
+// Subscription Plans
+export type SubscriptionPlan = "STARTER" | "PRO" | "ENTERPRISE";
+
+// Subscription Status
+export type SubscriptionStatus = "ACTIVE" | "TRIAL" | "PAST_DUE" | "CANCELLED";
+
+// Feature Keys
+export type FeatureKey =
+  | "VIDEO_MENU"
+  | "TABLE_MANAGEMENT"
+  | "TABLE_ORDERING"
+  | "ORDER_MANAGEMENT"
+  | "MEDIA_LIBRARY"
+  | "RESERVATIONS"
+  | "CAPTAIN_ACCESS"
+  | "WIFI"
+  | "CUSTOM_THEME"
+  | "ANALYTICS";
 
 // Restaurant Profile
 export type Restaurant = {
@@ -41,6 +95,15 @@ export type Restaurant = {
   logoUrl?: string;
   coverUrl?: string;
   isActive?: boolean;
+  // Subscription fields
+  subscriptionPlan?: SubscriptionPlan;
+  subscriptionStatus?: SubscriptionStatus;
+  subscriptionEnabled?: boolean;
+  featureOverrides?: Partial<Record<FeatureKey, boolean>>;
+  // Theme/Branding fields
+  theme?: RestaurantTheme;
+  // Private server-side configuration; public serializers must omit it.
+  wifi?: RestaurantWifiConfiguration;
 };
 
 // Category
@@ -145,6 +208,8 @@ export type RestaurantTable = {
   restaurantId: string;
   tableNumber: number;
   label?: string;
+  capacity?: number;
+  reservationRevision?: number;
   isActive: boolean;
   status: TableStatus;
   createdAt: string;
@@ -152,6 +217,34 @@ export type RestaurantTable = {
 };
 
 export type TableStatus = "OPEN" | "OCCUPIED" | "CLOSED";
+
+export type ReservationStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "NO_SHOW";
+
+export type Reservation = {
+  id: string;
+  restaurantId: string;
+  tableId: string;
+  tableNumberSnapshot: number;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  reservationDate: string;
+  startTime: string;
+  endTime: string;
+  startAt: Date;
+  endAt: Date;
+  timezone: "Asia/Kolkata";
+  guestCount: number;
+  specialRequest?: string;
+  status: ReservationStatus;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type OrderStatus =
   | "PENDING"
@@ -194,8 +287,17 @@ export type RestaurantOrder = {
   updatedAt: string;
 };
 
-export type OrderSummary = Pick<RestaurantOrder,
-  "id" | "orderNumber" | "tableNumber" | "status" | "items" | "subtotal" | "total" | "createdAt" | "updatedAt"
+export type OrderSummary = Pick<
+  RestaurantOrder,
+  | "id"
+  | "orderNumber"
+  | "tableNumber"
+  | "status"
+  | "items"
+  | "subtotal"
+  | "total"
+  | "createdAt"
+  | "updatedAt"
 >;
 
 // Standard API Response envelope

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { RestaurantTable } from "@/types";
 import type { ITableRepository } from "./types";
 import { connectToDatabase } from "@/lib/db/mongodb";
-import { OrderModel, TableModel } from "@/lib/db/models";
+import { OrderModel, ReservationModel, TableModel } from "@/lib/db/models";
 import { toDomain } from "@/lib/db/mongo-mappers";
 
 function tableToDomain(table: unknown) {
@@ -14,6 +14,12 @@ export class TableRepository implements ITableRepository {
   async findByRestaurantId(restaurantId: string) {
     await connectToDatabase();
     const tables = await TableModel.find({ restaurantId }).sort({ tableNumber: 1 }).lean();
+    return tables.map(tableToDomain);
+  }
+
+  async findBookableByRestaurant(restaurantId: string, guestCount: number) {
+    await connectToDatabase();
+    const tables = await TableModel.find({ restaurantId, isActive: true, status: "OPEN", capacity: { $gte: guestCount } }).sort({ tableNumber: 1 }).lean();
     return tables.map(tableToDomain);
   }
 
@@ -58,10 +64,28 @@ export class TableRepository implements ITableRepository {
 
   async deleteIfUnused(restaurantId: string, id: string) {
     await connectToDatabase();
-    const orderExists = await OrderModel.exists({ restaurantId, tableId: id });
-    if (orderExists) return false;
-    const result = await TableModel.deleteOne({ restaurantId, id });
-    return result.deletedCount === 1;
+    const session = await TableModel.startSession();
+    try {
+      let deleted = false;
+      await session.withTransaction(async () => {
+        const table = await TableModel.findOneAndUpdate(
+          { restaurantId, id },
+          { $inc: { reservationRevision: 1 } },
+          { new: true, session },
+        ).lean();
+        if (!table) return;
+        const [orderExists, reservationExists] = await Promise.all([
+          OrderModel.exists({ restaurantId, tableId: id }).session(session),
+          ReservationModel.exists({ restaurantId, tableId: id }).session(session),
+        ]);
+        if (orderExists || reservationExists) return;
+        const result = await TableModel.deleteOne({ restaurantId, id }, { session });
+        deleted = result.deletedCount === 1;
+      });
+      return deleted;
+    } finally {
+      await session.endSession();
+    }
   }
 }
 
